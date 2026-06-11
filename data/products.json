@@ -1,0 +1,117 @@
+[
+  {
+    "id": "1",
+    "slug": "chicha-crystal-premium",
+    "name": "Chicha Crystal Premium",
+    "description": "Une chicha d'exception au design cristallin. Le verre soufflé à la main offre une qualité de fumée incomparable et une esthétique raffinée qui sublimera votre intérieur. Base stable et large pour une utilisation en toute sécurité.",
+    "shortDescription": "Chicha en verre soufflé main, design cristallin élégant",
+    "price": 12999,
+    "images": [
+      "https://placehold.co/600x600/2D2D2D/F7F5F3?text=Chicha+Crystal",
+      "https://placehold.co/600x600/C4A98F/2D2D2D?text=Chicha+Crystal+2"
+    ],
+    "category": "chicha",
+    "inStock": true,
+    "featured": true
+  },
+  {
+    "id": "2",
+    "slug": "chicha-classic-noir",
+    "name": "Chicha Classic Noir",
+    "description": "Un classique revisité avec une finition noir mat. Idéale pour les amateurs de chichas traditionnelles recherchant une touche de modernité. Construction robuste et entretien facile.",
+    "shortDescription": "Chicha traditionnelle finition noir mat",
+    "price": 8999,
+    "compareAtPrice": 10999,
+    "images": [
+      "https://placehold.co/600x600/1A1A1A/F7F5F3?text=Classic+Noir"
+    ],
+    "category": "chicha",
+    "inStock": true,
+    "featured": true
+  },
+  {
+    "id": "3",
+    "slug": "bol-silicone-pro",
+    "name": "Bol en Silicone Pro",
+    "description": "Bol en silicone de qualité alimentaire avec insert en céramique. Résistant à la chaleur extrême et incassable. Parfait pour une distribution homogène de la chaleur.",
+    "shortDescription": "Bol silicone avec insert céramique, incassable",
+    "price": 2499,
+    "images": [
+      "https://placehold.co/600x600/C4A98F/2D2D2D?text=Bol+Silicone"
+    ],
+    "category": "bol",
+    "inStock": true,
+    "featured": false
+  },
+  {
+    "id": "4",
+    "slug": "bol-ceramique-artisanal",
+    "name": "Bol Céramique Artisanal",
+    "description": "Bol en céramique fait main par des artisans. Chaque pièce est unique avec des variations subtiles de couleur. Excellente rétention de chaleur pour des sessions prolongées.",
+    "shortDescription": "Bol céramique fait main, pièce unique",
+    "price": 3499,
+    "images": [
+      "https://placehold.co/600x600/9B9590/F7F5F3?text=Bol+Ceramique"
+    ],
+    "category": "bol",
+    "inStock": true,
+    "featured": true
+  },
+  {
+    "id": "5",
+    "slug": "tuyau-silicone-premium",
+    "name": "Tuyau Silicone Premium",
+    "description": "Tuyau en silicone alimentaire ultra-flexible de 1,8m. Lavable au lave-vaisselle. Embout en acier inoxydable avec poignée ergonomique.",
+    "shortDescription": "Tuyau silicone 1,8m, embout inox, lavable",
+    "price": 1999,
+    "images": [
+      "https://placehold.co/600x600/2D2D2D/C4A98F?text=Tuyau+Premium"
+    ],
+    "category": "tuyau",
+    "inStock": true,
+    "featured": false
+  },
+  {
+    "id": "6",
+    "slug": "charbon-naturel-coco",
+    "name": "Charbon Naturel Coco",
+    "description": "Charbon naturel à base de coque de noix de coco. Durée de combustion de 60+ minutes. Sans odeur et sans goût. Boîte de 72 pièces (1kg).",
+    "shortDescription": "Charbon coco naturel, 72 pièces, 60+ min",
+    "price": 1499,
+    "images": [
+      "https://placehold.co/600x600/4A4A4A/F7F5F3?text=Charbon+Coco"
+    ],
+    "category": "charbon",
+    "inStock": true,
+    "featured": true
+  },
+  {
+    "id": "7",
+    "slug": "pince-charbon-pro",
+    "name": "Pince à Charbon Pro",
+    "description": "Pince en acier inoxydable avec manche anti-chaleur. Design ergonomique pour une manipulation précise des charbons. Longueur idéale de 25cm.",
+    "shortDescription": "Pince inox avec manche anti-chaleur, 25cm",
+    "price": 999,
+    "compareAtPrice": 1299,
+    "images": [
+      "https://placehold.co/600x600/9B9590/2D2D2D?text=Pince+Pro"
+    ],
+    "category": "accessoire",
+    "inStock": true,
+    "featured": false
+  },
+  {
+    "id": "8",
+    "slug": "kit-nettoyage-complet",
+    "name": "Kit Nettoyage Complet",
+    "description": "Kit complet pour l'entretien de votre chicha. Inclut 3 brosses de tailles différentes, un goupillon pour tuyau, et une éponge spéciale pour le verre.",
+    "shortDescription": "Kit 5 pièces: brosses, goupillon, éponge",
+    "price": 1899,
+    "images": [
+      "https://placehold.co/600x600/E8E4DF/2D2D2D?text=Kit+Nettoyage"
+    ],
+    "category": "accessoire",
+    "inStock": false,
+    "featured": false
+  }
+]

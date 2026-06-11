@@ -1,0 +1,20 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/scrape",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/curate",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/translate-reviews",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/email-campaigns",
+      "schedule": "0 10 * * 1"
+    }
+  ]
+}

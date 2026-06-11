@@ -1,0 +1,243 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme inline {
+  /* Typography */
+  --font-sans: var(--font-space-grotesk);
+  --font-heading: var(--font-space-grotesk);
+  /* Editorial serif for large display type only (H1, pulled quotes) */
+  --font-display: var(--font-cormorant);
+
+  /* Brand Colors - Rich Medium Beige & Gold */
+  --color-primary: #d4af37;              /* Rich gold */
+  --color-primary-light: #e3c557;        /* Brighter gold for hovers */
+  --color-primary-dark: #b8941f;         /* Deep gold */
+
+  --color-accent: #8b6f47;               /* Rich cognac brown */
+  --color-accent-light: #a88c64;         /* Light caramel */
+  --color-accent-dark: #6b542f;          /* Deep chocolate */
+
+  /* Medium Tone Beige Backgrounds */
+  --color-background: #2b251f;           /* Rich dark taupe */
+  --color-background-dark: #241f1a;      /* Deepest surface (footer, overlays) — referenced by 30+ bg/text utilities */
+  --color-background-secondary: #3a342c; /* Medium warm brown */
+  --color-background-card: #433d33;      /* Warm olive-brown card */
+
+  /* Glassmorphism Surfaces */
+  --color-surface-glass: rgba(67, 61, 51, 0.7);
+  --color-surface-glass-light: rgba(67, 61, 51, 0.4);
+  --color-surface-hover: #4d463b;
+
+  /* Text Colors */
+  --color-text: #e8dfd5;                 /* Soft beige text */
+  --color-text-muted: #a89985;           /* Muted sand */
+  --color-text-inverse: #2b251f;
+
+  /* Borders */
+  --color-border: rgba(212, 175, 55, 0.2);
+  --color-border-light: rgba(232, 223, 213, 0.08);
+  --color-border-hover: rgba(212, 175, 55, 0.4);
+
+  /* State Colors */
+  --color-success: #d4af37;
+  --color-error: #e07a4f;   /* ~5.1:1 contrast on #2b251f (WCAG AA) */
+  --color-warning: #d99043; /* ~5.8:1 contrast on #2b251f (WCAG AA) */
+  --color-info: #8b6f47;
+
+  /* Glassmorphism Blur Values */
+  --backdrop-blur-sm: 8px;
+  --backdrop-blur-md: 12px;
+  --backdrop-blur-lg: 16px;
+  --backdrop-blur-xl: 24px;
+
+  /* Spacing - responsive whitespace */
+  --spacing-section: clamp(2rem, 8vw, 6rem);         /* 32px - 96px */
+  --spacing-section-sm: clamp(1.5rem, 6vw, 4rem);    /* 24px - 64px */
+  --spacing-card: clamp(1rem, 3vw, 1.5rem);          /* 16px - 24px */
+  --spacing-card-lg: clamp(1.25rem, 4vw, 2rem);      /* 20px - 32px */
+
+  /* Border Radius */
+  --radius-button: 9999px;               /* Full rounded */
+  --radius-card: 1rem;
+  --radius-card-lg: 1.5rem;
+}
+
+/* Base styles.
+   IMPORTANT: these element defaults live in @layer base so Tailwind
+   utilities (declared in the later `utilities` layer) can override them.
+   Unlayered they would beat every utility class regardless of specificity —
+   which silently disabled font and text utilities on headings and links.
+   Font families reference the next/font runtime variables directly:
+   the @theme tokens (--font-sans, --font-heading) are inlined by Tailwind
+   and do NOT exist as CSS variables at runtime. */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  body {
+    font-family: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+    font-weight: 400;
+    line-height: 1.6;
+    overflow-x: hidden;
+    max-width: 100vw;
+    background-color: var(--color-background);
+    color: var(--color-text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Global resets */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  /* Typography defaults */
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: var(--color-text);
+  }
+
+  h1 {
+    font-size: clamp(1.75rem, 5vw + 1rem, 3rem);     /* 28px - 48px */
+  }
+
+  h2 {
+    font-size: clamp(1.5rem, 4vw + 0.5rem, 2.25rem); /* 24px - 36px */
+  }
+
+  h3 {
+    font-size: clamp(1.25rem, 3vw + 0.5rem, 1.75rem); /* 20px - 28px */
+  }
+
+  h4 {
+    font-size: clamp(1.125rem, 2vw + 0.5rem, 1.375rem); /* 18px - 22px */
+  }
+
+  h5 {
+    font-size: clamp(1rem, 1.5vw + 0.5rem, 1.125rem); /* 16px - 18px */
+  }
+
+  h6 {
+    font-size: clamp(0.875rem, 1vw + 0.5rem, 1rem); /* 14px - 16px */
+  }
+
+  a {
+    color: var(--color-text);
+    transition: color 0.3s ease;
+  }
+
+  a:hover {
+    color: var(--color-primary);
+  }
+
+  /* Selection color */
+  ::selection {
+    background-color: var(--color-primary);
+    color: white;
+  }
+
+  /* Focus styles for accessibility */
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+/* Hide scrollbars on horizontal carousels while keeping them scrollable */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Glassmorphism Utilities */
+.glass-header {
+  background: rgba(10, 10, 10, 0.85);
+  backdrop-filter: blur(var(--backdrop-blur-md));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur-md));
+  border-bottom: 1px solid rgba(18, 222, 38, 0.15);
+}
+
+.glass-card {
+  background: var(--color-surface-glass);
+  backdrop-filter: blur(var(--backdrop-blur-md));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur-md));
+  border: 1px solid var(--color-border-light);
+}
+
+.glass-card-hover:hover {
+  background: rgba(77, 70, 59, 0.85);
+  border-color: var(--color-border-hover);
+}
+
+.gradient-overlay-bottom {
+  background: linear-gradient(180deg, rgba(43,37,31,0) 0%, rgba(43,37,31,0.8) 70%, #2b251f 100%);
+}
+
+.btn-glow {
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+}
+
+.btn-glow:hover {
+  box-shadow: 0 0 30px rgba(212, 175, 55, 0.6), 0 0 40px rgba(139, 111, 71, 0.3);
+}
+
+/* Glassmorphism fallback for unsupported browsers */
+@supports not (backdrop-filter: blur(12px)) {
+  .glass-card, .glass-header {
+    background: rgba(67, 61, 51, 0.95);
+  }
+}
+
+/* Safe Area Insets for PWA */
+:root {
+  --safe-area-inset-top: env(safe-area-inset-top, 0);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0);
+  --safe-area-inset-left: env(safe-area-inset-left, 0);
+  --safe-area-inset-right: env(safe-area-inset-right, 0);
+}
+
+.pt-safe {
+  padding-top: calc(0.75rem + var(--safe-area-inset-top));
+}
+
+.pb-safe {
+  padding-bottom: calc(0.75rem + var(--safe-area-inset-bottom));
+}
+
+.px-safe {
+  padding-left: calc(1rem + var(--safe-area-inset-left));
+  padding-right: calc(1rem + var(--safe-area-inset-right));
+}
+
+/* Reduced Motion Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Landscape Mode Optimizations */
+@media (max-height: 500px) and (orientation: landscape) {
+  .landscape-compress {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .landscape-hide {
+    display: none;
+  }
+}
