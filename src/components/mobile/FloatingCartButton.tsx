@@ -41,6 +41,9 @@ export function FloatingCartButton() {
   // Hidden while the footer is on screen so the button never covers the
   // copyright text at the bottom of the page.
   const [footerVisible, setFooterVisible] = useState(false);
+  // Hidden while the support chat is open — it must not poke through the
+  // chat window (which sits at a lower z-index) or sit beside it on desktop.
+  const [chatOpen, setChatOpen] = useState(false);
 
   const totalItems = calculateTotalItems(items);
 
@@ -69,6 +72,13 @@ export function FloatingCartButton() {
     return () => observer.disconnect();
   }, [pathname]);
 
+  // Listen for the support chat opening/closing (dispatched by SupportChat).
+  useEffect(() => {
+    const handler = (e: Event) => setChatOpen((e as CustomEvent<boolean>).detail);
+    window.addEventListener("nuage:chat-open", handler);
+    return () => window.removeEventListener("nuage:chat-open", handler);
+  }, []);
+
   // Pulse animation when item count increases
   useEffect(() => {
     if (totalItems > previousCount && previousCount !== 0) {
@@ -90,9 +100,9 @@ export function FloatingCartButton() {
     }
   };
 
-  // Don't render on hidden pages (cart/checkout/catalog) or while the footer
-  // is on screen.
-  if (shouldHide || footerVisible) return null;
+  // Don't render on hidden pages (cart/checkout/catalog), while the footer
+  // is on screen, or while the support chat is open.
+  if (shouldHide || footerVisible || chatOpen) return null;
 
   // No entrance animation: a mount animation that fails to run would leave
   // the button invisible (same failure mode the chat launcher had).

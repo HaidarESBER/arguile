@@ -116,6 +116,13 @@ export function SupportChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Broadcast open/close so other floating widgets (e.g. the cart button)
+  // can hide themselves while the chat covers the screen. Same custom-event
+  // pattern used for cookie consent above.
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("nuage:chat-open", { detail: isOpen }));
+  }, [isOpen]);
+
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
 

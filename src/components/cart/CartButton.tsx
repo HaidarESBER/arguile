@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useCart } from "@/contexts/CartContext";
 import { calculateTotalItems } from "@/types/cart";
@@ -36,6 +36,14 @@ export function CartButton({}: { isHomepage?: boolean }) {
   const t = STRINGS[locale];
   const totalItems = calculateTotalItems(items);
   const [showEmptyToast, setShowEmptyToast] = useState(false);
+  // Hidden while the support chat is open so no cart icon shows alongside it.
+  const [chatOpen, setChatOpen] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: Event) => setChatOpen((e as CustomEvent<boolean>).detail);
+    window.addEventListener("nuage:chat-open", handler);
+    return () => window.removeEventListener("nuage:chat-open", handler);
+  }, []);
 
   const handleClick = (e: React.MouseEvent) => {
     // Only show toast on mobile (screen width < 768px) when cart is empty;
@@ -46,6 +54,8 @@ export function CartButton({}: { isHomepage?: boolean }) {
       setTimeout(() => setShowEmptyToast(false), 2500);
     }
   };
+
+  if (chatOpen) return null;
 
   return (
     <>
