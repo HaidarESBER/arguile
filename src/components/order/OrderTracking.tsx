@@ -2,9 +2,62 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Order, OrderStatus, orderStatusLabels } from "@/types/order";
+import { Order, OrderStatus } from "@/types/order";
 import { Button } from "@/components/ui";
 import { OrderDetails } from "./OrderDetails";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    // fr values match orderStatusLabels in @/types/order
+    statusLabels: {
+      pending_payment: "En attente de paiement",
+      pending: "En attente",
+      confirmed: "Confirmée",
+      processing: "En préparation",
+      shipped: "Expédiée",
+      delivered: "Livrée",
+      cancelled: "Annulée",
+      refunded: "Remboursée",
+    } as Record<OrderStatus, string>,
+    title: "Suivi de commande",
+    orderNumber: (orderNumber: string) => `Commande ${orderNumber}`,
+    inProgress: "En cours",
+    cancelledTitle: "Commande annulée",
+    cancelledMessage:
+      "Cette commande a été annulée. Si vous avez des questions, contactez-nous.",
+    shippingInfo: "Informations de livraison",
+    trackingNumber: "Numéro de suivi",
+    estimatedDelivery: "Livraison estimée",
+    trackParcel: "Suivre mon colis",
+    continueShopping: "Continuer mes achats",
+    backToHome: "Retour à l'accueil",
+  },
+  en: {
+    statusLabels: {
+      pending_payment: "Awaiting payment",
+      pending: "Pending",
+      confirmed: "Confirmed",
+      processing: "Being prepared",
+      shipped: "Shipped",
+      delivered: "Delivered",
+      cancelled: "Cancelled",
+      refunded: "Refunded",
+    } as Record<OrderStatus, string>,
+    title: "Order tracking",
+    orderNumber: (orderNumber: string) => `Order ${orderNumber}`,
+    inProgress: "In progress",
+    cancelledTitle: "Order cancelled",
+    cancelledMessage:
+      "This order has been cancelled. If you have any questions, please contact us.",
+    shippingInfo: "Shipping information",
+    trackingNumber: "Tracking number",
+    estimatedDelivery: "Estimated delivery",
+    trackParcel: "Track my parcel",
+    continueShopping: "Continue shopping",
+    backToHome: "Back to home",
+  },
+} as const;
 
 interface OrderTrackingProps {
   order: Order;
@@ -21,6 +74,8 @@ interface OrderTrackingProps {
  * - Full order details
  */
 export function OrderTracking({ order }: OrderTrackingProps) {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const {
     orderNumber,
     status,
@@ -57,10 +112,10 @@ export function OrderTracking({ order }: OrderTrackingProps) {
       {/* Header */}
       <div className="text-center">
         <h1 className="font-heading text-3xl text-primary mb-2">
-          Suivi de commande
+          {t.title}
         </h1>
         <p className="text-lg text-primary font-medium">
-          Commande {orderNumber}
+          {t.orderNumber(orderNumber)}
         </p>
       </div>
 
@@ -134,7 +189,7 @@ export function OrderTracking({ order }: OrderTrackingProps) {
                           : "text-muted"
                       }`}
                     >
-                      {orderStatusLabels[statusItem]}
+                      {t.statusLabels[statusItem]}
                     </p>
 
                     {/* Current Status Indicator */}
@@ -145,7 +200,7 @@ export function OrderTracking({ order }: OrderTrackingProps) {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3, delay: 0.5 }}
                       >
-                        En cours
+                        {t.inProgress}
                       </motion.div>
                     )}
                   </div>
@@ -161,10 +216,9 @@ export function OrderTracking({ order }: OrderTrackingProps) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <p className="font-medium">Commande annulée</p>
+              <p className="font-medium">{t.cancelledTitle}</p>
               <p className="text-sm mt-1">
-                Cette commande a été annulée. Si vous avez des questions,
-                contactez-nous.
+                {t.cancelledMessage}
               </p>
             </motion.div>
           )}
@@ -180,18 +234,18 @@ export function OrderTracking({ order }: OrderTrackingProps) {
           transition={{ duration: 0.4 }}
         >
           <h2 className="font-heading text-xl text-primary mb-4">
-            Informations de livraison
+            {t.shippingInfo}
           </h2>
           <div className="space-y-3">
             <div>
-              <p className="text-sm text-muted mb-1">Numéro de suivi</p>
+              <p className="text-sm text-muted mb-1">{t.trackingNumber}</p>
               <p className="text-lg font-medium text-primary">
                 {trackingNumber}
               </p>
             </div>
             {estimatedDelivery && (
               <div>
-                <p className="text-sm text-muted mb-1">Livraison estimée</p>
+                <p className="text-sm text-muted mb-1">{t.estimatedDelivery}</p>
                 <p className="text-base text-primary">{estimatedDelivery}</p>
               </div>
             )}
@@ -204,7 +258,7 @@ export function OrderTracking({ order }: OrderTrackingProps) {
                 >
                   <Button variant="primary" size="md">
                     <span className="flex items-center gap-2">
-                      Suivre mon colis
+                      {t.trackParcel}
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         width="16"
@@ -236,12 +290,12 @@ export function OrderTracking({ order }: OrderTrackingProps) {
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
         <Link href="/produits">
           <Button variant="primary" size="md">
-            Continuer mes achats
+            {t.continueShopping}
           </Button>
         </Link>
         <Link href="/">
           <Button variant="secondary" size="md">
-            Retour à l&apos;accueil
+            {t.backToHome}
           </Button>
         </Link>
       </div>

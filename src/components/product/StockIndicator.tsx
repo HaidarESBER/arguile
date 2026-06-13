@@ -1,6 +1,19 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    inStock: "En stock",
+    outOfStock: "Rupture de stock",
+    almostGone: "Bientôt épuisé",
+  },
+  en: {
+    inStock: "In stock",
+    outOfStock: "Out of stock",
+    almostGone: "Almost gone",
+  },
+} as const;
 
 interface StockIndicatorProps {
   inStock: boolean;
@@ -29,6 +42,8 @@ export function StockIndicator({
   size = "md",
   showDot = true,
 }: StockIndicatorProps) {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   // If no stockLevel provided, fallback to simple inStock display
   if (stockLevel === undefined) {
     return (
@@ -45,7 +60,7 @@ export function StockIndicator({
             inStock ? "text-success" : "text-error"
           }`}
         >
-          {inStock ? "En stock" : "Rupture de stock"}
+          {inStock ? t.inStock : t.outOfStock}
         </span>
       </div>
     );
@@ -59,57 +74,21 @@ export function StockIndicator({
         <span
           className={`${size === "sm" ? "text-xs" : "text-sm"} font-medium text-error`}
         >
-          Rupture de stock
+          {t.outOfStock}
         </span>
       </div>
     );
   }
 
-  // Urgent stock (1-5 items) - with pulse
+  // Genuinely low stock (1-5 items) — stated calmly, no pulse, no "!"
   if (stockLevel <= 5) {
     return (
       <div className="flex items-center gap-2">
-        {showDot && (
-          <motion.span
-            animate={{
-              opacity: [0.7, 1, 0.7],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-            className="w-2.5 h-2.5 rounded-full bg-error"
-          />
-        )}
-        <motion.span
-          animate={{
-            opacity: [0.7, 1, 0.7],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className={`${size === "sm" ? "text-xs" : "text-sm"} font-medium text-error`}
-        >
-          Plus que {stockLevel} en stock !
-        </motion.span>
-      </div>
-    );
-  }
-
-  // Limited stock (6-10 items)
-  if (stockLevel <= 10) {
-    return (
-      <div className="flex items-center gap-2">
-        {showDot && (
-          <span className="w-2.5 h-2.5 rounded-full bg-[#F97316]" />
-        )}
+        {showDot && <span className="w-2.5 h-2.5 rounded-full bg-[#F97316]" />}
         <span
-          className={`${size === "sm" ? "text-xs" : "text-sm"} font-medium text-[#F97316]`}
+          className={`${size === "sm" ? "text-xs" : "text-sm"} font-medium text-text-muted`}
         >
-          Stock limité
+          {t.almostGone}
         </span>
       </div>
     );
@@ -122,7 +101,7 @@ export function StockIndicator({
       <span
         className={`${size === "sm" ? "text-xs" : "text-sm"} font-medium text-success`}
       >
-        En stock
+        {t.inStock}
       </span>
     </div>
   );

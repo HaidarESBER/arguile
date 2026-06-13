@@ -1,12 +1,50 @@
 "use client";
 
 import Image from "next/image";
+import { Truck, RotateCcw, ShieldCheck } from "lucide-react";
 import { CartItem, calculateSubtotal, formatCartTotal } from "@/types/cart";
 import { useCart } from "@/contexts/CartContext";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    title: "Votre commande",
+    decreaseQuantity: (name: string) => `Réduire la quantité de ${name}`,
+    increaseQuantity: (name: string) => `Augmenter la quantité de ${name}`,
+    removeFromOrder: (name: string) => `Retirer ${name} de la commande`,
+    remove: "Retirer",
+    subtotal: "Sous-total",
+    discount: (code: string) => `Remise (${code})`,
+    shipping: "Livraison",
+    toBeCalculated: "À calculer",
+    free: "Gratuite",
+    total: "Total",
+    shipsIn24h: "Expédition sous 24h",
+    returns14d: "Retours sous 14 jours",
+    securePayment: "Paiement 100% sécurisé",
+  },
+  en: {
+    title: "Your order",
+    decreaseQuantity: (name: string) => `Decrease quantity of ${name}`,
+    increaseQuantity: (name: string) => `Increase quantity of ${name}`,
+    removeFromOrder: (name: string) => `Remove ${name} from the order`,
+    remove: "Remove",
+    subtotal: "Subtotal",
+    discount: (code: string) => `Discount (${code})`,
+    shipping: "Shipping",
+    toBeCalculated: "To be calculated",
+    free: "Free",
+    total: "Total",
+    shipsIn24h: "Ships within 24h",
+    returns14d: "Returns within 14 days",
+    securePayment: "100% secure payment",
+  },
+} as const;
 
 interface OrderSummaryProps {
   items: CartItem[];
-  shippingCost?: number; // in cents
+  /** Shipping cost in cents — null while not yet computed, 0 means free */
+  shippingCost?: number | null;
   discount?: { code: string; amount: number; label: string };
 }
 
@@ -22,16 +60,18 @@ const MAX_QUANTITY = 50;
  *   totals, shipping and the free-shipping threshold update live
  * - Subtotal, discount line, shipping cost, order total
  */
-export function OrderSummary({ items, shippingCost = 0, discount }: OrderSummaryProps) {
+export function OrderSummary({ items, shippingCost = null, discount }: OrderSummaryProps) {
   const { updateQuantity, removeItem } = useCart();
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const subtotal = calculateSubtotal(items);
   const discountAmount = discount ? discount.amount : 0;
-  const total = Math.max(0, subtotal - discountAmount + shippingCost);
+  const total = Math.max(0, subtotal - discountAmount + (shippingCost ?? 0));
 
   return (
     <div className="bg-background-card rounded-[--radius-card] p-6">
-      <h2 className="font-heading text-xl text-primary mb-4">
-        Votre commande
+      <h2 className="font-heading text-xl text-text mb-4">
+        {t.title}
       </h2>
 
       {/* Items list */}
@@ -71,7 +111,7 @@ export function OrderSummary({ items, shippingCost = 0, discount }: OrderSummary
 
             {/* Product details + quantity controls */}
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-medium text-primary truncate">
+              <h3 className="text-sm font-medium text-text truncate">
                 {item.product.name}
               </h3>
               <div className="flex items-center gap-2 mt-1.5">
@@ -79,7 +119,7 @@ export function OrderSummary({ items, shippingCost = 0, discount }: OrderSummary
                   type="button"
                   onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
                   disabled={item.quantity <= 1}
-                  aria-label={`Réduire la quantité de ${item.product.name}`}
+                  aria-label={t.decreaseQuantity(item.product.name)}
                   className="w-7 h-7 flex items-center justify-center rounded-full border border-white/15 text-text hover:border-primary/60 hover:text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   −
@@ -94,7 +134,7 @@ export function OrderSummary({ items, shippingCost = 0, discount }: OrderSummary
                     item.quantity >=
                     Math.min(MAX_QUANTITY, item.product.stockLevel ?? MAX_QUANTITY)
                   }
-                  aria-label={`Augmenter la quantité de ${item.product.name}`}
+                  aria-label={t.increaseQuantity(item.product.name)}
                   className="w-7 h-7 flex items-center justify-center rounded-full border border-white/15 text-text hover:border-primary/60 hover:text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   +
@@ -110,10 +150,10 @@ export function OrderSummary({ items, shippingCost = 0, discount }: OrderSummary
               <button
                 type="button"
                 onClick={() => removeItem(item.product.id)}
-                aria-label={`Retirer ${item.product.name} de la commande`}
+                aria-label={t.removeFromOrder(item.product.name)}
                 className="text-xs text-muted hover:text-error transition-colors underline underline-offset-2"
               >
-                Retirer
+                {t.remove}
               </button>
             </div>
           </div>
@@ -123,24 +163,50 @@ export function OrderSummary({ items, shippingCost = 0, discount }: OrderSummary
       {/* Totals */}
       <div className="space-y-3 border-t border-background-secondary pt-4">
         <div className="flex justify-between text-sm text-muted">
-          <span>Sous-total</span>
+          <span>{t.subtotal}</span>
           <span>{formatCartTotal(subtotal)}</span>
         </div>
         {discount && discount.amount > 0 && (
           <div className="flex justify-between text-sm font-medium text-success">
-            <span>Remise ({discount.code})</span>
+            <span>{t.discount(discount.code)}</span>
             <span>-{formatCartTotal(discount.amount)}</span>
           </div>
         )}
         <div className="flex justify-between text-sm text-muted">
-          <span>Livraison</span>
-          <span>{shippingCost > 0 ? formatCartTotal(shippingCost) : "Calculer"}</span>
+          <span>{t.shipping}</span>
+          <span>
+            {shippingCost == null
+              ? t.toBeCalculated
+              : shippingCost > 0
+                ? formatCartTotal(shippingCost)
+                : (
+                    <span className="text-success font-medium">{t.free}</span>
+                  )}
+          </span>
         </div>
         <hr className="border-background-secondary" />
         <div className="flex justify-between font-medium text-lg text-primary">
-          <span>Total</span>
+          <span>{t.total}</span>
           <span>{formatCartTotal(total)}</span>
         </div>
+      </div>
+
+      {/* Trust / reassurance row */}
+      <div className="mt-5 pt-4 border-t border-background-secondary">
+        <ul className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-2">
+          <li className="flex items-center gap-2 text-text-muted">
+            <Truck className="w-4 h-4 text-primary flex-shrink-0" aria-hidden="true" />
+            <span className="text-xs">{t.shipsIn24h}</span>
+          </li>
+          <li className="flex items-center gap-2 text-text-muted">
+            <RotateCcw className="w-4 h-4 text-primary flex-shrink-0" aria-hidden="true" />
+            <span className="text-xs">{t.returns14d}</span>
+          </li>
+          <li className="flex items-center gap-2 text-text-muted">
+            <ShieldCheck className="w-4 h-4 text-primary flex-shrink-0" aria-hidden="true" />
+            <span className="text-xs">{t.securePayment}</span>
+          </li>
+        </ul>
       </div>
     </div>
   );

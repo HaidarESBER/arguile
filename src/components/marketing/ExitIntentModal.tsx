@@ -4,12 +4,56 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { isValidEmail } from "@/types/checkout";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    close: "Fermer",
+    sentTitle: "Code envoyé !",
+    sentBody: "Vérifiez votre boîte mail pour utiliser votre réduction.",
+    sentCodeBefore: "Vous pouvez aussi utiliser directement le code :",
+    wait: "Attendez !",
+    firstOrder: "Première commande ?",
+    offerBefore: "Profitez de ",
+    offerStrong: "10% de réduction",
+    offerAfter: "sur votre première commande",
+    promoCode: "Code promo",
+    copy: "Copier",
+    emailLabel: "Recevez votre code par email",
+    emailPlaceholder: "votre@email.com",
+    send: "Envoyer",
+    invalidEmail: "Email invalide, veuillez réessayer.",
+    socialProof: "Rejoignez +500 clients satisfaits",
+    noThanks: "Non merci",
+  },
+  en: {
+    close: "Close",
+    sentTitle: "Code sent!",
+    sentBody: "Check your inbox to use your discount.",
+    sentCodeBefore: "You can also use the code directly:",
+    wait: "Wait!",
+    firstOrder: "First order?",
+    offerBefore: "Enjoy ",
+    offerStrong: "10% off",
+    offerAfter: "your first order",
+    promoCode: "Promo code",
+    copy: "Copy",
+    emailLabel: "Get your code by email",
+    emailPlaceholder: "your@email.com",
+    send: "Send",
+    invalidEmail: "Invalid email, please try again.",
+    socialProof: "Join 500+ happy customers",
+    noThanks: "No thanks",
+  },
+} as const;
 
 /**
  * Exit-intent modal to capture abandoning visitors with first-purchase discount
  * Desktop only, shows once per session, non-intrusive UX
  */
 export function ExitIntentModal() {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const [isVisible, setIsVisible] = useState(false);
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
@@ -144,7 +188,7 @@ export function ExitIntentModal() {
               <button
                 onClick={handleClose}
                 className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-muted hover:text-primary transition-colors"
-                aria-label="Fermer"
+                aria-label={t.close}
               >
                 <XMarkIcon className="w-6 h-6" />
               </button>
@@ -185,13 +229,13 @@ export function ExitIntentModal() {
                     </div>
                   </div>
                   <h2 className="font-heading text-2xl text-primary mb-2">
-                    Code envoyé !
+                    {t.sentTitle}
                   </h2>
                   <p className="text-muted mb-4">
-                    Vérifiez votre boîte mail pour utiliser votre réduction.
+                    {t.sentBody}
                   </p>
                   <p className="text-sm text-muted">
-                    Vous pouvez aussi utiliser directement le code :{" "}
+                    {t.sentCodeBefore}{" "}
                     <span className="font-medium text-primary">BIENVENUE10</span>
                   </p>
                 </motion.div>
@@ -199,21 +243,21 @@ export function ExitIntentModal() {
                 /* Main content */
                 <>
                   <h2 className="font-heading text-3xl text-primary mb-2">
-                    Attendez !
+                    {t.wait}
                   </h2>
                   <h3 className="text-xl text-primary mb-4">
-                    Première commande ?
+                    {t.firstOrder}
                   </h3>
                   <p className="text-muted mb-6">
-                    Profitez de <span className="font-medium text-primary">10% de réduction</span>{" "}
-                    sur votre première commande
+                    {t.offerBefore}<span className="font-medium text-primary">{t.offerStrong}</span>{" "}
+                    {t.offerAfter}
                   </p>
 
                   {/* Discount code display */}
                   <div className="mb-6 p-4 bg-background-secondary rounded-[--radius-card] border-2 border-accent/20">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-muted mb-1">Code promo</p>
+                        <p className="text-sm text-muted mb-1">{t.promoCode}</p>
                         <p className="text-2xl font-medium text-primary tracking-wider">
                           BIENVENUE10
                         </p>
@@ -222,7 +266,7 @@ export function ExitIntentModal() {
                         onClick={copyDiscountCode}
                         className="px-4 py-2 bg-accent text-background rounded-[--radius-button] hover:bg-accent/90 transition-colors text-sm font-medium"
                       >
-                        Copier
+                        {t.copy}
                       </button>
                     </div>
                   </div>
@@ -230,7 +274,7 @@ export function ExitIntentModal() {
                   {/* Email form */}
                   <form onSubmit={handleSubmit} className="mb-6">
                     <label htmlFor="email" className="block text-sm text-muted mb-2">
-                      Recevez votre code par email
+                      {t.emailLabel}
                     </label>
                     <div className="flex gap-2">
                       <input
@@ -241,7 +285,7 @@ export function ExitIntentModal() {
                           setEmail(e.target.value);
                           setStatus("idle");
                         }}
-                        placeholder="votre@email.com"
+                        placeholder={t.emailPlaceholder}
                         className="flex-1 px-4 py-2 border border-muted/20 rounded-[--radius-button] bg-background text-primary placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-accent"
                         required
                       />
@@ -249,19 +293,19 @@ export function ExitIntentModal() {
                         type="submit"
                         className="px-6 py-2 bg-primary text-background rounded-[--radius-button] hover:bg-accent hover:text-primary transition-colors font-medium whitespace-nowrap"
                       >
-                        Envoyer
+                        {t.send}
                       </button>
                     </div>
                     {status === "error" && (
                       <p className="text-error text-sm mt-2">
-                        Email invalide, veuillez réessayer.
+                        {t.invalidEmail}
                       </p>
                     )}
                   </form>
 
                   {/* Social proof */}
                   <p className="text-center text-sm text-muted mb-4">
-                    Rejoignez +500 clients satisfaits
+                    {t.socialProof}
                   </p>
 
                   {/* Dismiss link */}
@@ -269,7 +313,7 @@ export function ExitIntentModal() {
                     onClick={handleClose}
                     className="w-full text-center text-sm text-muted hover:text-primary transition-colors"
                   >
-                    Non merci
+                    {t.noThanks}
                   </button>
                 </>
               )}

@@ -5,6 +5,20 @@ import Link from "next/link";
 import { useCart } from "@/contexts/CartContext";
 import { calculateTotalItems } from "@/types/cart";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    cartLabel: (n: number) => `Panier${n > 0 ? ` (${n} articles)` : ""}`,
+    emptyTitle: "Votre panier est vide",
+    emptySubtitle: "Ajoutez des produits pour continuer",
+  },
+  en: {
+    cartLabel: (n: number) => `Cart${n > 0 ? ` (${n} item${n > 1 ? "s" : ""})` : ""}`,
+    emptyTitle: "Your cart is empty",
+    emptySubtitle: "Add products to continue",
+  },
+} as const;
 
 /**
  * CartButton component for header navigation
@@ -18,6 +32,8 @@ import { motion, AnimatePresence } from "framer-motion";
 // The isHomepage prop is kept in the type because callers pass it, but it is currently unused.
 export function CartButton({}: { isHomepage?: boolean }) {
   const { items } = useCart();
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const totalItems = calculateTotalItems(items);
   const [showEmptyToast, setShowEmptyToast] = useState(false);
 
@@ -37,7 +53,7 @@ export function CartButton({}: { isHomepage?: boolean }) {
         href="/panier"
         onClick={handleClick}
         className="relative inline-flex items-center justify-center p-2 text-white/90 hover:text-primary transition-colors"
-        aria-label={`Panier${totalItems > 0 ? ` (${totalItems} articles)` : ""}`}
+        aria-label={t.cartLabel(totalItems)}
       >
         {/* Cart icon */}
         <svg
@@ -76,8 +92,8 @@ export function CartButton({}: { isHomepage?: boolean }) {
             <div className="bg-background-card border border-white/10 rounded-xl shadow-2xl px-6 py-4 flex items-center gap-3 backdrop-blur-md">
               <span className="material-icons text-amber-400 text-2xl">shopping_cart</span>
               <div>
-                <p className="text-white font-semibold text-sm">Votre panier est vide</p>
-                <p className="text-text-muted text-xs">Ajoutez des produits pour continuer</p>
+                <p className="text-white font-semibold text-sm">{t.emptyTitle}</p>
+                <p className="text-text-muted text-xs">{t.emptySubtitle}</p>
               </div>
             </div>
           </motion.div>

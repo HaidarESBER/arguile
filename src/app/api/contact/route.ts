@@ -21,6 +21,7 @@ const COOLDOWN_MS = 60 * 1000; // 1 message par minute et par IP
 // In-memory cooldown map (resets on server restart - acceptable for this use)
 const lastSubmissionByIp = new Map<string, number>();
 
+// Subject labels for the email sent to the shop (internal, kept in French)
 const SUBJECT_LABELS: Record<string, string> = {
   commande: "Question sur une commande",
   produit: "Question sur un produit",
@@ -28,6 +29,40 @@ const SUBJECT_LABELS: Record<string, string> = {
   retour: "Retour / Remboursement",
   autre: "Autre",
 };
+
+// Shopper-visible API response messages
+const STRINGS = {
+  fr: {
+    cooldown:
+      "Vous venez déjà d'envoyer un message. Merci de patienter une minute avant de réessayer.",
+    invalidRequest: "Requête invalide.",
+    nameRequired: "Veuillez indiquer votre nom (2 caractères minimum).",
+    nameTooLong: "Le nom ne peut pas dépasser 100 caractères.",
+    invalidEmail: "Veuillez indiquer une adresse email valide.",
+    messageTooShort: "Votre message doit contenir au moins 10 caractères.",
+    messageTooLong: "Votre message ne peut pas dépasser 5000 caractères.",
+    mailerUnavailable: (email: string) =>
+      `Le service d'envoi est momentanément indisponible. Merci de nous écrire directement à ${email}.`,
+    sendFailed: (email: string) =>
+      `L'envoi du message a échoué. Merci de réessayer ou de nous écrire à ${email}.`,
+    unexpected: "Une erreur inattendue est survenue. Merci de réessayer.",
+  },
+  en: {
+    cooldown:
+      "You just sent a message. Please wait a minute before trying again.",
+    invalidRequest: "Invalid request.",
+    nameRequired: "Please enter your name (at least 2 characters).",
+    nameTooLong: "The name cannot exceed 100 characters.",
+    invalidEmail: "Please enter a valid email address.",
+    messageTooShort: "Your message must contain at least 10 characters.",
+    messageTooLong: "Your message cannot exceed 5000 characters.",
+    mailerUnavailable: (email: string) =>
+      `The sending service is temporarily unavailable. Please email us directly at ${email}.`,
+    sendFailed: (email: string) =>
+      `The message could not be sent. Please try again or email us at ${email}.`,
+    unexpected: "An unexpected error occurred. Please try again.",
+  },
+} as const;
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -49,6 +84,10 @@ function escapeHtml(value: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  const v = request.cookies.get("locale")?.value;
+  const locale = v === "en" ? "en" : "fr";
+  const t = STRINGS[locale];
+
   try {
     // --- Rate limiting (1 message / minute / IP) ---
     const ip = getClientIp(request);
@@ -57,8 +96,7 @@ export async function POST(request: NextRequest) {
     if (last !== undefined && now - last < COOLDOWN_MS) {
       return NextResponse.json(
         {
-          error:
-            "Vous venez déjà d'envoyer un message. Merci de patienter une minute avant de réessayer.",
+          error: t.cooldown,
         },
         { status: 429 }
       );
@@ -79,7 +117,7 @@ export async function POST(request: NextRequest) {
       body = await request.json();
     } catch {
       return NextResponse.json(
-        { error: "Requête invalide." },
+        { error: t.invalidRequest },
         { status: 400 }
       );
     }
@@ -93,13 +131,13 @@ export async function POST(request: NextRequest) {
 
     if (typeof name !== "string" || name.trim().length < 2) {
       return NextResponse.json(
-        { error: "Veuillez indiquer votre nom (2 caractères minimum)." },
+        { error: t.nameRequired },
         { status: 400 }
       );
     }
     if (name.trim().length > 100) {
       return NextResponse.json(
-        { error: "Le nom ne peut pas dépasser 100 caractères." },
+        { error: t.nameTooLong },
         { status: 400 }
       );
     }
@@ -110,20 +148,20 @@ export async function POST(request: NextRequest) {
       !EMAIL_REGEX.test(email.trim())
     ) {
       return NextResponse.json(
-        { error: "Veuillez indiquer une adresse email valide." },
+        { error: t.invalidEmail },
         { status: 400 }
       );
     }
 
     if (typeof message !== "string" || message.trim().length < 10) {
       return NextResponse.json(
-        { error: "Votre message doit contenir au moins 10 caractères." },
+        { error: t.messageTooShort },
         { status: 400 }
       );
     }
     if (message.trim().length > 5000) {
       return NextResponse.json(
-        { error: "Votre message ne peut pas dépasser 5000 caractères." },
+        { error: t.messageTooLong },
         { status: 400 }
       );
     }
@@ -139,8 +177,7 @@ export async function POST(request: NextRequest) {
       console.error("Contact form: SMTP is not configured");
       return NextResponse.json(
         {
-          error:
-            `Le service d'envoi est momentanément indisponible. Merci de nous écrire directement à ${SUPPORT_EMAIL}.`,
+          error: t.mailerUnavailable(SUPPORT_EMAIL),
         },
         { status: 503 }
       );
@@ -154,6 +191,7 @@ export async function POST(request: NextRequest) {
       from: getFromAddress("transactional"),
       to: CONTACT_RECIPIENT,
       replyTo: cleanEmail,
+      kind: "contact",
       subject: `[Contact] ${subjectLabel} — ${cleanName}`,
       html: `
         <h2>Nouveau message depuis le formulaire de contact</h2>
@@ -169,8 +207,7 @@ export async function POST(request: NextRequest) {
       console.error("Contact form: error sending email:", error);
       return NextResponse.json(
         {
-          error:
-            `L'envoi du message a échoué. Merci de réessayer ou de nous écrire à ${SUPPORT_EMAIL}.`,
+          error: t.sendFailed(SUPPORT_EMAIL),
         },
         { status: 502 }
       );
@@ -182,7 +219,7 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     console.error("Contact form: unexpected error:", err);
     return NextResponse.json(
-      { error: "Une erreur inattendue est survenue. Merci de réessayer." },
+      { error: t.unexpected },
       { status: 500 }
     );
   }

@@ -2,30 +2,39 @@ import { MetadataRoute } from 'next';
 import { getAllPosts } from '@/lib/blog';
 import { SITE_URL } from '@/lib/seo';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { getAllProductSlugs } from '@/lib/products';
+import { categorySlugs } from '@/lib/categories';
 
 /**
  * Fetch product slugs with their real last-modified dates.
- * Falls back to an empty list if the database is unavailable.
+ * Prefers the DB (slug + updated_at); falls back to getAllProductSlugs()
+ * (which itself serves dev fixtures when Supabase is absent) so the sitemap
+ * is never silently empty of products.
  */
 async function getProductEntries(): Promise<
   Array<{ slug: string; updatedAt?: Date }>
 > {
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from('products')
-    .select('slug, updated_at');
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from('products')
+      .select('slug, updated_at');
 
-  if (error || !data) {
-    console.error('Sitemap: error fetching product slugs:', error);
-    return [];
+    if (!error && data && data.length > 0) {
+      return (data as Array<{ slug: string; updated_at: string | null }>).map(
+        (row) => ({
+          slug: row.slug,
+          updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
+        })
+      );
+    }
+  } catch {
+    // fall through to the slug-only source
   }
 
-  return (data as Array<{ slug: string; updated_at: string | null }>).map(
-    (row) => ({
-      slug: row.slug,
-      updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
-    })
-  );
+  // Fallback: slugs only (no dates), works with fixtures / static builds
+  const slugs = await getAllProductSlugs();
+  return slugs.map((slug) => ({ slug }));
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -48,6 +57,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
   ];
+
+  // Category landing pages (/produits/chichas, /produits/charbons, …)
+  const categoryPages: MetadataRoute.Sitemap = Object.values(categorySlugs).map(
+    (slug) => ({
+      url: `${baseUrl}/produits/${slug}`,
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    })
+  );
 
   // Product detail pages (real updated_at dates from the database)
   const productEntries = await getProductEntries();
@@ -109,6 +127,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     ...homepage,
     ...productsListing,
+    ...categoryPages,
     ...productPages,
     ...blogListing,
     ...blogPages,

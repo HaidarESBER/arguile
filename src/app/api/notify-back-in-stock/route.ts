@@ -10,7 +10,32 @@ import { createClient } from "@/lib/supabase/server";
  * - productId: string
  * - productName: string
  */
+
+// Shopper-visible API response messages
+const STRINGS = {
+  fr: {
+    missingFields: "Email et ID produit requis",
+    invalidEmail: "Format d'email invalide",
+    alreadySubscribed: "Vous êtes déjà inscrit pour ce produit",
+    subscriptionFailed: "Échec de l'inscription",
+    subscriptionSuccess: "Inscription réussie",
+    internalError: "Erreur interne du serveur",
+  },
+  en: {
+    missingFields: "Email and product ID required",
+    invalidEmail: "Invalid email format",
+    alreadySubscribed: "You are already subscribed for this product",
+    subscriptionFailed: "Subscription failed",
+    subscriptionSuccess: "Subscription successful",
+    internalError: "Internal server error",
+  },
+} as const;
+
 export async function POST(request: NextRequest) {
+  const v = request.cookies.get("locale")?.value;
+  const locale = v === "en" ? "en" : "fr";
+  const t = STRINGS[locale];
+
   try {
     const body = await request.json();
     const { email, productId, productName } = body;
@@ -18,7 +43,7 @@ export async function POST(request: NextRequest) {
     // Validate input
     if (!email || !productId) {
       return NextResponse.json(
-        { error: "Email et ID produit requis" },
+        { error: t.missingFields },
         { status: 400 }
       );
     }
@@ -27,7 +52,7 @@ export async function POST(request: NextRequest) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return NextResponse.json(
-        { error: "Format d'email invalide" },
+        { error: t.invalidEmail },
         { status: 400 }
       );
     }
@@ -45,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     if (existing) {
       return NextResponse.json(
-        { message: "Vous êtes déjà inscrit pour ce produit" },
+        { message: t.alreadySubscribed },
         { status: 200 }
       );
     }
@@ -64,19 +89,19 @@ export async function POST(request: NextRequest) {
     if (insertError) {
       console.error("Error creating notification:", insertError);
       return NextResponse.json(
-        { error: "Échec de l'inscription" },
+        { error: t.subscriptionFailed },
         { status: 500 }
       );
     }
 
     return NextResponse.json(
-      { message: "Inscription réussie" },
+      { message: t.subscriptionSuccess },
       { status: 200 }
     );
   } catch (error) {
     console.error("Error in notify-back-in-stock:", error);
     return NextResponse.json(
-      { error: "Erreur interne du serveur" },
+      { error: t.internalError },
       { status: 500 }
     );
   }

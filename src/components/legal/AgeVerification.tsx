@@ -2,6 +2,38 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    title: "Vérification d'âge",
+    requirementBefore: "Vous devez être âgé(e) de ",
+    requirementStrong: "18 ans ou plus",
+    requirementAfter: " pour accéder à ce site.",
+    certify:
+      "En confirmant, vous certifiez avoir l'âge légal requis pour acheter et utiliser nos produits.",
+    warningStrong: "⚠️ Avertissement santé :",
+    warningRest: " Fumer est dangereux pour la santé.",
+    underAge: "J'ai moins de 18 ans",
+    overAge: "J'ai 18 ans ou plus",
+    legal:
+      "Conformément à la législation française, la vente de nos produits est strictement interdite aux mineurs.",
+  },
+  en: {
+    title: "Age verification",
+    requirementBefore: "You must be ",
+    requirementStrong: "18 or older",
+    requirementAfter: " to access this site.",
+    certify:
+      "By confirming, you certify that you are of legal age to purchase and use our products.",
+    warningStrong: "⚠️ Health warning:",
+    warningRest: " Smoking is harmful to your health.",
+    underAge: "I am under 18",
+    overAge: "I am 18 or older",
+    legal:
+      "In accordance with French law, the sale of our products to minors is strictly prohibited.",
+  },
+} as const;
 
 const STORAGE_KEY = "nuage_age_verified";
 const VALIDITY_MS = 365 * 24 * 60 * 60 * 1000; // 1 an
@@ -17,6 +49,8 @@ const VALIDITY_MS = 365 * 24 * 60 * 60 * 1000; // 1 an
  * - Accessible: role="dialog", aria-modal, focus trap, initial focus
  */
 export function AgeVerification() {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const [showModal, setShowModal] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
@@ -145,23 +179,23 @@ export function AgeVerification() {
               id="age-verification-title"
               className="text-3xl font-heading font-bold text-primary mb-4"
             >
-              Vérification d&apos;âge
+              {t.title}
             </h2>
 
             {/* Description */}
             <div className="mb-8 space-y-3">
               <p className="text-primary/70 text-lg">
-                Vous devez être âgé(e) de <strong className="text-primary">18 ans ou plus</strong> pour accéder à ce site.
+                {t.requirementBefore}<strong className="text-primary">{t.requirementStrong}</strong>{t.requirementAfter}
               </p>
               <p className="text-sm text-primary/50">
-                En confirmant, vous certifiez avoir l&apos;âge légal requis pour acheter et utiliser nos produits.
+                {t.certify}
               </p>
             </div>
 
             {/* Warning box */}
             <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-lg">
               <p className="text-sm text-amber-900">
-                <strong>⚠️ Avertissement santé :</strong> Fumer est dangereux pour la santé.
+                <strong>{t.warningStrong}</strong>{t.warningRest}
               </p>
             </div>
 
@@ -171,20 +205,20 @@ export function AgeVerification() {
                 onClick={handleDeny}
                 className="flex-1 px-6 py-3 min-h-[44px] border-2 border-primary/20 text-primary rounded-[--radius-button] hover:bg-primary/5 hover:border-primary/30 transition-all duration-200 font-medium"
               >
-                J&apos;ai moins de 18 ans
+                {t.underAge}
               </button>
               <button
                 ref={confirmButtonRef}
                 onClick={handleConfirm}
                 className="flex-1 px-6 py-3 min-h-[44px] bg-primary text-background rounded-[--radius-button] hover:bg-accent transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
               >
-                J&apos;ai 18 ans ou plus
+                {t.overAge}
               </button>
             </div>
 
             {/* Legal notice */}
             <p className="mt-6 text-xs text-primary/40">
-              Conformément à la législation française, la vente de nos produits est strictement interdite aux mineurs.
+              {t.legal}
             </p>
           </motion.div>
         </motion.div>

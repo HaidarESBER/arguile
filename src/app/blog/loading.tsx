@@ -1,10 +1,28 @@
+"use client";
+
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    loadingBlog: "Chargement du blog",
+    loadingArticles: "Chargement des articles en cours…",
+  },
+  en: {
+    loadingBlog: "Loading the blog",
+    loadingArticles: "Loading articles…",
+  },
+} as const;
+
 /**
  * Skeleton loading state for the blog pages.
  * Matches the dark taupe theme and the editorial layout.
  */
 export default function BlogLoading() {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
+
   return (
-    <div aria-busy="true" aria-label="Chargement du blog">
+    <div aria-busy="true" aria-label={t.loadingBlog}>
       {/* Hero skeleton */}
       <section className="bg-primary py-16 md:py-24">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
@@ -42,7 +60,7 @@ export default function BlogLoading() {
         </div>
       </section>
 
-      <p className="sr-only">Chargement des articles en cours…</p>
+      <p className="sr-only">{t.loadingArticles}</p>
     </div>
   );
 }

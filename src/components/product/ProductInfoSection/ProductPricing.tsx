@@ -4,6 +4,22 @@ import { memo } from "react";
 import { formatPrice } from "@/types/product";
 import { FREE_SHIPPING_THRESHOLD } from "@/lib/shipping";
 import { Truck } from "lucide-react";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    vatIncluded: "TVA incluse",
+    freeShipping: "Livraison gratuite",
+    freeShippingFrom: (amount: string) =>
+      `Livraison gratuite dès ${amount} de plus`,
+  },
+  en: {
+    vatIncluded: "VAT included",
+    freeShipping: "Free shipping",
+    freeShippingFrom: (amount: string) =>
+      `Free shipping if you add ${amount} more`,
+  },
+} as const;
 
 interface ProductPricingProps {
   price: number;
@@ -16,6 +32,8 @@ interface ProductPricingProps {
  * Memoized to prevent unnecessary re-renders
  */
 export const ProductPricing = memo(function ProductPricing({ price, compareAtPrice }: ProductPricingProps) {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const hasDiscount = compareAtPrice && compareAtPrice > price;
   const freeShippingThreshold = FREE_SHIPPING_THRESHOLD;
 
@@ -31,19 +49,19 @@ export const ProductPricing = memo(function ProductPricing({ price, compareAtPri
           </span>
         )}
       </div>
-      <p className="text-xs text-muted mb-2">TVA incluse</p>
+      <p className="text-xs text-muted mb-2">{t.vatIncluded}</p>
 
       {/* Free shipping badge */}
       {price >= freeShippingThreshold ? (
         <div className="inline-flex items-center gap-1.5 bg-green-50 text-green-700 px-2.5 py-1 rounded-full text-xs font-medium">
           <Truck className="w-3.5 h-3.5" />
-          <span>Livraison gratuite</span>
+          <span>{t.freeShipping}</span>
         </div>
       ) : (
         <div className="inline-flex items-center gap-1.5 bg-background-secondary px-2.5 py-1 rounded-full text-xs text-muted">
           <Truck className="w-3.5 h-3.5" />
           <span>
-            Livraison gratuite dès {formatPrice(freeShippingThreshold - price)} de plus
+            {t.freeShippingFrom(formatPrice(freeShippingThreshold - price))}
           </span>
         </div>
       )}

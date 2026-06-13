@@ -1,15 +1,117 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Product, categoryLabels } from "@/types/product";
+import { Truck, RotateCcw, ShieldCheck, ShoppingCart, Check, Share2 } from "lucide-react";
+import { Product, getCategoryLabel } from "@/types/product";
 import { Review, ProductRatingStats } from "@/data/reviews";
 import { useCart } from "@/contexts/CartContext";
+import { useLocale } from "@/contexts/LocaleContext";
 import { formatPrice } from "@/types/product";
 import { ReviewSubmitModal } from "@/components/product/ReviewSubmitModal";
+import { categoryPath } from "@/lib/categories";
+
+const STRINGS = {
+  fr: {
+    ship24h: "Expédition sous 24h",
+    returns14: "Retours sous 14 jours",
+    securePayment: "Paiement sécurisé",
+    home: "Accueil",
+    products: "Produits",
+    linkCopied: "Lien copié dans le presse-papiers!",
+    newBadge: "Nouveau",
+    share: "Partager",
+    description: "Description",
+    specs: "Caractéristiques",
+    customerReviews: (n: number) => `Avis clients (${n})`,
+    dateLocale: "fr-FR",
+    seeLess: "Voir moins",
+    seeMoreCount: (n: number) => `Voir plus (${n})`,
+    similarProducts: "Produits similaires",
+    similarProductsHeading: "Produits Similaires",
+    seeMoreProducts: "Voir plus de produits",
+    completePurchase: "Complétez votre achat",
+    boughtTogether: "Fréquemment achetés ensemble",
+    added: "Ajouté",
+    add: "Ajouter",
+    soldOut: "Épuisé",
+    buy: "Acheter",
+    reviewsCount: (n: number) => `(${n} Avis)`,
+    seeTheReviews: "(regarder les avis)",
+    inStockShip24h: "En stock — expédié sous 24h",
+    temporarilySoldOut: "Temporairement épuisé",
+    bestSeller: "Meilleure Vente",
+    reviews: "Avis",
+    writeReview: "Écrire un avis",
+    reviewShort: "Avis",
+    sortByRelevance: "Par pertinence",
+    sortMostRecent: "Plus récent",
+    seeMore: "Voir plus",
+    addedToCart: "Produit ajouté au panier",
+  },
+  en: {
+    ship24h: "Ships within 24h",
+    returns14: "14-day returns",
+    securePayment: "Secure payment",
+    home: "Home",
+    products: "Products",
+    linkCopied: "Link copied to clipboard!",
+    newBadge: "New",
+    share: "Share",
+    description: "Description",
+    specs: "Specifications",
+    customerReviews: (n: number) => `Customer reviews (${n})`,
+    dateLocale: "en-US",
+    seeLess: "See less",
+    seeMoreCount: (n: number) => `See more (${n})`,
+    similarProducts: "Similar products",
+    similarProductsHeading: "Similar Products",
+    seeMoreProducts: "See more products",
+    completePurchase: "Complete your purchase",
+    boughtTogether: "Frequently bought together",
+    added: "Added",
+    add: "Add to cart",
+    soldOut: "Sold out",
+    buy: "Buy now",
+    reviewsCount: (n: number) => `(${n} Reviews)`,
+    seeTheReviews: "(see the reviews)",
+    inStockShip24h: "In stock — ships within 24h",
+    temporarilySoldOut: "Temporarily out of stock",
+    bestSeller: "Best Seller",
+    reviews: "Reviews",
+    writeReview: "Write a review",
+    reviewShort: "Review",
+    sortByRelevance: "By relevance",
+    sortMostRecent: "Most recent",
+    seeMore: "See more",
+    addedToCart: "Product added to cart",
+  },
+} as const;
+
+/** Quiet reassurance row shown near the buy buttons. */
+function ReassuranceRow() {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
+  return (
+    <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-text-muted">
+      <span className="inline-flex items-center gap-1.5">
+        <Truck className="w-4 h-4 text-primary" aria-hidden="true" />
+        {t.ship24h}
+      </span>
+      <span className="inline-flex items-center gap-1.5">
+        <RotateCcw className="w-4 h-4 text-primary" aria-hidden="true" />
+        {t.returns14}
+      </span>
+      <span className="inline-flex items-center gap-1.5">
+        <ShieldCheck className="w-4 h-4 text-primary" aria-hidden="true" />
+        {t.securePayment}
+      </span>
+    </div>
+  );
+}
 
 interface ProductDetailClientProps {
   product: Product;
@@ -35,44 +137,72 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
     images: [],
     currentIndex: 0
   });
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const galleryRef = useRef<HTMLElement | null>(null);
+  const swipe = useRef<{ startX: number; startY: number; dx: number; horizontal: boolean }>({
+    startX: 0,
+    startY: 0,
+    dx: 0,
+    horizontal: false,
+  });
   const [mobileReviewsExpanded, setMobileReviewsExpanded] = useState(false);
   const [showAddedToast, setShowAddedToast] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const { addItem } = useCart();
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
 
   const MAX_VISIBLE_THUMBNAILS = 5;
 
   // Minimum swipe distance (in px) to trigger image change
-  const MIN_SWIPE_DISTANCE = 50;
+  const MIN_SWIPE_DISTANCE = 40;
 
-  // Swipe handlers for mobile image carousel
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
+  // Mobile gallery swipe — uses a NATIVE non-passive touchmove listener so we
+  // can preventDefault() and stop the page from scrolling vertically during a
+  // horizontal swipe (React's onTouchMove is passive and cannot do this).
+  const imageCount = product.images.length;
+  useEffect(() => {
+    const el = galleryRef.current;
+    if (!el || imageCount < 2) return;
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
+    const onStart = (e: TouchEvent) => {
+      const t = e.touches[0];
+      swipe.current = { startX: t.clientX, startY: t.clientY, dx: 0, horizontal: false };
+    };
 
-  const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
+    const onMove = (e: TouchEvent) => {
+      const t = e.touches[0];
+      const dx = t.clientX - swipe.current.startX;
+      const dy = t.clientY - swipe.current.startY;
+      swipe.current.dx = dx;
+      // Once the gesture is clearly horizontal, claim it and block page scroll.
+      if (!swipe.current.horizontal && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
+        swipe.current.horizontal = true;
+      }
+      if (swipe.current.horizontal) {
+        e.preventDefault();
+      }
+    };
 
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > MIN_SWIPE_DISTANCE;
-    const isRightSwipe = distance < -MIN_SWIPE_DISTANCE;
+    const onEnd = () => {
+      if (!swipe.current.horizontal) return;
+      const dx = swipe.current.dx;
+      if (dx <= -MIN_SWIPE_DISTANCE) {
+        setSelectedImageIndex((prev) => (prev < imageCount - 1 ? prev + 1 : prev));
+      } else if (dx >= MIN_SWIPE_DISTANCE) {
+        setSelectedImageIndex((prev) => (prev > 0 ? prev - 1 : prev));
+      }
+    };
 
-    if (isLeftSwipe && selectedImageIndex < product.images.length - 1) {
-      // Swipe left - next image
-      setSelectedImageIndex(prev => prev + 1);
-    } else if (isRightSwipe && selectedImageIndex > 0) {
-      // Swipe right - previous image
-      setSelectedImageIndex(prev => prev - 1);
-    }
-  };
+    el.addEventListener("touchstart", onStart, { passive: true });
+    el.addEventListener("touchmove", onMove, { passive: false });
+    el.addEventListener("touchend", onEnd, { passive: true });
+    return () => {
+      el.removeEventListener("touchstart", onStart);
+      el.removeEventListener("touchmove", onMove);
+      el.removeEventListener("touchend", onEnd);
+    };
+  }, [imageCount]);
 
   // Sort all reviews
   const sortedReviews = [...reviews]
@@ -120,7 +250,7 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
         await navigator.share(shareData);
       } else {
         await navigator.clipboard.writeText(window.location.href);
-        alert('Lien copié dans le presse-papiers!');
+        alert(t.linkCopied);
       }
     } catch (err) {
       console.error('Error sharing:', err);
@@ -208,22 +338,22 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
           <ol className="inline-flex items-center space-x-1">
             <li className="inline-flex items-center">
               <Link href="/" className="hover:text-primary transition-colors">
-                Accueil
+                {t.home}
               </Link>
             </li>
             <li>
               <div className="flex items-center">
                 <span className="material-icons text-gray-600 text-xs mx-1">chevron_right</span>
                 <Link href="/produits" className="hover:text-primary transition-colors">
-                  Produits
+                  {t.products}
                 </Link>
               </div>
             </li>
             <li>
               <div className="flex items-center">
                 <span className="material-icons text-gray-600 text-xs mx-1">chevron_right</span>
-                <Link href={`/produits?category=${product.category}`} className="text-gray-400 hover:text-primary transition-colors">
-                  {categoryLabels[product.category]}
+                <Link href={categoryPath(product.category)} className="text-gray-400 hover:text-primary transition-colors">
+                  {getCategoryLabel(product.category, locale)}
                 </Link>
               </div>
             </li>
@@ -236,12 +366,12 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
           </ol>
         </nav>
 
-        {/* Hero Image */}
+        {/* Hero Image — touch-action pan-y lets vertical scroll through while
+            the native listener handles horizontal swipes (see useEffect) */}
         <section
+          ref={galleryRef}
           className="relative h-[45vh] w-full overflow-hidden"
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
+          style={{ touchAction: "pan-y" }}
         >
           {/* Back Button - On top of image */}
           <div className="absolute top-3 left-3 z-20">
@@ -294,7 +424,7 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
           {product.featured && (
             <div className="absolute bottom-4 left-4 z-10">
               <span className="bg-primary/90 text-background-dark text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider backdrop-blur-sm">
-                Nouveau
+                {t.newBadge}
               </span>
             </div>
           )}
@@ -302,7 +432,7 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
 
         {/* Product Info */}
         <main className="px-3 py-3 pb-28">
-          <h1 className="text-lg font-bold leading-tight tracking-tight mb-2">{product.name}</h1>
+          <h1 className="font-display text-2xl font-medium leading-tight tracking-tight mb-2">{product.name}</h1>
 
           {/* Price & Rating */}
           <div className="flex items-center justify-between mb-2">
@@ -323,72 +453,49 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
             )}
           </div>
 
-          {/* Action Buttons - Add to cart & Share (favorites flow hidden) */}
-          <div className="flex gap-2 mb-3">
-            <button
-              onClick={handleAddToCart}
-              disabled={!product.inStock}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-primary hover:bg-primary-light text-background-dark font-semibold rounded-lg transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <span className="material-icons text-sm" aria-hidden="true">
-                {justAdded ? "check" : "add_shopping_cart"}
-              </span>
-              <span>{justAdded ? "Ajouté" : "Ajouter au panier"}</span>
-            </button>
+          {/* Reassurance + share. The Ajouter/Acheter buttons live in the
+              sticky bottom bar on mobile, so there is no inline pair here
+              (it duplicated the CTA and collided with the floating buttons). */}
+          <div className="mb-4 space-y-2">
+            <ReassuranceRow />
             <button
               onClick={handleShare}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-surface-dark hover:bg-surface-dark/80 border border-white/10 hover:border-primary/30 rounded-lg transition-all text-white text-xs"
+              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-white transition-colors"
             >
-              <span className="material-icons text-sm" aria-hidden="true">share</span>
-              <span>Partager</span>
+              <Share2 className="w-3.5 h-3.5" aria-hidden="true" />
+              {t.share}
             </button>
           </div>
 
-          {/* Short Description */}
-          <p className="text-gray-400 text-[10px] leading-relaxed mb-4">{product.shortDescription}</p>
+          {/* Description — visible by default */}
+          <div className="mb-4">
+            <h2 className="font-display text-lg font-medium text-white mb-1.5">{t.description}</h2>
+            <p className="text-text-muted text-sm leading-relaxed">{product.description}</p>
+          </div>
+
+          {/* Specifications */}
+          {product.specs && product.specs.length > 0 && (
+            <div className="mb-4">
+              <h2 className="font-display text-lg font-medium text-white mb-2">{t.specs}</h2>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
+                {product.specs.map((spec) => (
+                  <div key={spec.label} className="border-b border-white/5 pb-1.5">
+                    <dt className="text-[11px] uppercase tracking-wide text-gray-500">{spec.label}</dt>
+                    <dd className="text-sm text-white">{spec.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
 
           {/* Accordions */}
           <div className="space-y-2 mb-4">
-            <details className="group bg-surface-dark rounded-lg border border-white/5">
-              <summary className="flex justify-between items-center p-2.5 cursor-pointer list-none">
-                <span className="font-medium text-xs text-gray-200">Description</span>
-                <span className="material-icons text-xs text-gray-400 group-open:rotate-180 transition-transform">
-                  expand_more
-                </span>
-              </summary>
-              <div className="px-2.5 pb-2.5 text-[10px] text-gray-400 border-t border-white/5 pt-2">
-                <p>{product.description}</p>
-              </div>
-            </details>
-
-            <details className="group bg-surface-dark rounded-lg border border-white/5">
-              <summary className="flex justify-between items-center p-2.5 cursor-pointer list-none">
-                <span className="font-medium text-xs text-gray-200">Caractéristiques</span>
-                <span className="material-icons text-xs text-gray-400 group-open:rotate-180 transition-transform">
-                  expand_more
-                </span>
-              </summary>
-              <div className="px-2.5 pb-2.5 text-[10px] text-gray-400 border-t border-white/5 pt-2">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <span className="block text-[9px] text-gray-500 uppercase">Catégorie</span>
-                    <span className="text-white text-[10px]">{product.category}</span>
-                  </div>
-                  <div>
-                    <span className="block text-[9px] text-gray-500 uppercase">Stock</span>
-                    <span className={`text-[10px] ${product.inStock ? "text-primary" : "text-red-400"}`}>
-                      {product.inStock ? "Disponible" : "Rupture"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </details>
 
             {/* Reviews Accordion */}
             {reviews.length > 0 && (
               <details className="group bg-surface-dark rounded-lg border border-white/5">
                 <summary className="flex justify-between items-center p-2.5 cursor-pointer list-none">
-                  <span className="font-medium text-xs text-gray-200">Avis clients ({reviews.length})</span>
+                  <span className="font-medium text-xs text-gray-200">{t.customerReviews(reviews.length)}</span>
                   <span className="material-icons text-xs text-gray-400 group-open:rotate-180 transition-transform">
                     expand_more
                   </span>
@@ -405,7 +512,7 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
                           ))}
                         </div>
                         <span className="text-[9px] text-gray-500">
-                          {new Date(review.date).toLocaleDateString('fr-FR')}
+                          {new Date(review.date).toLocaleDateString(t.dateLocale)}
                         </span>
                       </div>
                       <p className="text-[10px] font-medium text-white mb-0.5">{review.authorName}</p>
@@ -420,9 +527,11 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
                               onClick={() => openReviewImageLightbox(review.photos!, idx)}
                               className="w-12 h-12 rounded-md overflow-hidden border border-white/10 hover:border-primary/50 transition-colors cursor-pointer"
                             >
-                              <img
+                              <Image
                                 src={photo}
                                 alt={`Photo ${idx + 1}`}
+                                width={56}
+                                height={56}
                                 className="w-full h-full object-cover"
                               />
                             </div>
@@ -447,7 +556,7 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
                         onClick={() => setMobileReviewsExpanded(!mobileReviewsExpanded)}
                         className="w-full py-2 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded-lg text-xs font-medium transition-all"
                       >
-                        {mobileReviewsExpanded ? "Voir moins" : `Voir plus (${reviews.length - 3})`}
+                        {mobileReviewsExpanded ? t.seeLess : t.seeMoreCount(reviews.length - 3)}
                       </button>
                     </div>
                   )}
@@ -460,7 +569,7 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
           {relatedProducts.length > 0 && (
             <div className="mb-4">
               <h3 className="text-sm font-bold mb-2 flex items-center gap-1.5">
-                Produits similaires
+                {t.similarProducts}
                 <span className="w-0.5 h-0.5 rounded-full bg-primary animate-pulse"></span>
               </h3>
               <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 -mx-3 px-3 mb-3">
@@ -481,10 +590,10 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
 
               {/* Voir plus button */}
               <Link
-                href={`/produits?categorie=${product.category}`}
+                href={categoryPath(product.category)}
                 className="w-full flex items-center justify-center gap-2 py-2.5 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded-lg text-xs font-medium transition-all"
               >
-                Voir plus de produits
+                {t.seeMoreProducts}
                 <span className="material-icons text-sm">arrow_forward</span>
               </Link>
             </div>
@@ -495,10 +604,10 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
             <div className="mb-4">
               <div className="mb-2">
                 <h3 className="text-sm font-bold flex items-center gap-1.5">
-                  Complétez votre achat
+                  {t.completePurchase}
                   <span className="w-0.5 h-0.5 rounded-full bg-primary animate-pulse"></span>
                 </h3>
-                <p className="text-[9px] text-gray-400">Fréquemment achetés ensemble</p>
+                <p className="text-[9px] text-gray-400">{t.boughtTogether}</p>
               </div>
               <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 -mx-3 px-3 mb-3">
                 {complementaryProducts.map((item) => (
@@ -524,7 +633,7 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
                 href="/produits"
                 className="w-full flex items-center justify-center gap-2 py-2.5 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded-lg text-xs font-medium transition-all"
               >
-                Voir plus de produits
+                {t.seeMoreProducts}
                 <span className="material-icons text-sm">arrow_forward</span>
               </Link>
             </div>
@@ -556,16 +665,10 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
               onClick={handleAddToCart}
               disabled={!product.inStock}
               whileTap={{ scale: product.inStock ? 0.95 : 1 }}
-              animate={justAdded ? { scale: [1, 1.05, 1] } : {}}
-              transition={{ duration: 0.3 }}
-              className={`flex-1 h-10 font-bold text-xs rounded-full flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                justAdded
-                  ? "bg-green-500 text-white"
-                  : "bg-primary hover:bg-primary-light text-black"
-              }`}
+              className="flex-1 h-10 font-semibold text-sm rounded-full flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-surface-dark border border-primary/40 text-white"
             >
-              {justAdded && <span className="material-icons text-sm">check</span>}
-              <span>{justAdded ? "Ajouté" : product.inStock ? "Ajouter" : "Rupture"}</span>
+              {justAdded ? <Check className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
+              <span>{justAdded ? t.added : product.inStock ? t.add : t.soldOut}</span>
             </motion.button>
 
             {/* Buy Now Button */}
@@ -573,10 +676,9 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
               onClick={handleBuyNow}
               disabled={!product.inStock}
               whileTap={{ scale: product.inStock ? 0.95 : 1 }}
-              className="flex-1 h-10 font-bold text-xs rounded-full bg-primary hover:bg-primary-light text-black transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+              className="flex-1 h-10 font-semibold text-sm rounded-full bg-primary hover:bg-primary-light text-background transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
-              <span className="material-icons text-sm">bolt</span>
-              <span>Acheter</span>
+              {t.buy}
             </motion.button>
           </div>
         </div>
@@ -668,7 +770,7 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
                   <div className="absolute inset-0 bg-gradient-to-t from-background-dark/60 via-transparent to-transparent"></div>
                   {product.featured && (
                     <span className="absolute bottom-6 left-6 px-4 py-1.5 bg-primary text-black text-xs font-bold uppercase tracking-widest rounded-full">
-                      Meilleure Vente
+                      {t.bestSeller}
                     </span>
                   )}
                 </div>
@@ -684,22 +786,22 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
                   <ol className="inline-flex items-center space-x-1">
                     <li className="inline-flex items-center">
                       <Link href="/" className="hover:text-primary transition-colors">
-                        Accueil
+                        {t.home}
                       </Link>
                     </li>
                     <li>
                       <div className="flex items-center">
                         <span className="material-icons text-gray-600 text-xs mx-1">chevron_right</span>
                         <Link href="/produits" className="hover:text-primary transition-colors">
-                          Produits
+                          {t.products}
                         </Link>
                       </div>
                     </li>
                     <li>
                       <div className="flex items-center">
                         <span className="material-icons text-gray-600 text-xs mx-1">chevron_right</span>
-                        <Link href={`/produits?category=${product.category}`} className="text-gray-400 hover:text-primary transition-colors">
-                          {categoryLabels[product.category]}
+                        <Link href={categoryPath(product.category)} className="text-gray-400 hover:text-primary transition-colors">
+                          {getCategoryLabel(product.category, locale)}
                         </Link>
                       </div>
                     </li>
@@ -713,7 +815,7 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
                 </nav>
 
                 {/* Title */}
-                <h1 className="text-2xl xl:text-3xl font-bold uppercase tracking-tight text-white mb-2 leading-tight">
+                <h1 className="font-display text-3xl xl:text-4xl font-medium tracking-tight text-white mb-2 leading-tight">
                   {product.name}
                 </h1>
 
@@ -731,32 +833,43 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
                         ))}
                       </div>
                       <span className="text-[10px] text-gray-400 ml-1">
-                        ({stats.totalReviews} Avis)
+                        {t.reviewsCount(stats.totalReviews)}
                       </span>
                       <a
                         href="#reviews"
                         className="text-[10px] text-primary hover:text-primary-light transition-colors ml-1"
                       >
-                        (regarder les avis)
+                        {t.seeTheReviews}
                       </a>
                     </div>
                   )}
                 </div>
 
-                {/* Description */}
-                <p className="text-gray-400 text-xs leading-relaxed mb-3 font-light">
+                {/* Description — visible, not hidden in an accordion */}
+                <p className="text-text-muted text-sm leading-relaxed mb-4">
                   {product.description}
                 </p>
 
-                {/* Stock Status */}
-                {product.inStock && (
-                  <div className="flex items-center gap-1.5 mb-3 p-1.5 rounded-lg bg-surface-dark border border-white/5 w-fit">
-                    <span className="relative flex h-1.5 w-1.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary"></span>
-                    </span>
-                    <span className="text-[10px] font-medium text-primary">En stock - Livraison 48h</span>
+                {/* Specifications */}
+                {product.specs && product.specs.length > 0 && (
+                  <dl className="grid grid-cols-2 gap-x-6 gap-y-2 mb-4">
+                    {product.specs.map((spec) => (
+                      <div key={spec.label} className="border-b border-white/5 pb-1.5">
+                        <dt className="text-[11px] uppercase tracking-wide text-gray-500">{spec.label}</dt>
+                        <dd className="text-sm text-white">{spec.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+
+                {/* Stock Status — calm, no fake-urgency ping */}
+                {product.inStock ? (
+                  <div className="flex items-center gap-1.5 mb-3 text-sm text-primary">
+                    <Check className="w-4 h-4" aria-hidden="true" />
+                    <span>{t.inStockShip24h}</span>
                   </div>
+                ) : (
+                  <p className="mb-3 text-sm text-text-muted">{t.temporarilySoldOut}</p>
                 )}
 
                 <hr className="border-white/10 mb-3" />
@@ -785,32 +898,36 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
                     <button
                       onClick={handleAddToCart}
                       disabled={!product.inStock}
-                      className="flex-1 h-9 bg-primary hover:bg-primary-light text-black font-bold text-xs uppercase tracking-wide rounded-full flex items-center justify-center gap-1.5 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 h-11 bg-surface-dark hover:bg-surface-dark/70 border border-primary/40 hover:border-primary text-white font-semibold text-sm rounded-full flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <span>{product.inStock ? "Ajouter" : "Rupture de stock"}</span>
-                      {product.inStock && <span className="material-icons text-sm">shopping_cart</span>}
+                      {justAdded ? <Check className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
+                      <span>{justAdded ? t.added : product.inStock ? t.add : t.soldOut}</span>
                     </button>
 
                     {/* Buy Now Button */}
                     <motion.button
                       onClick={handleBuyNow}
                       disabled={!product.inStock}
-                      whileTap={{ scale: product.inStock ? 0.95 : 1 }}
-                      className="flex-1 h-9 bg-primary hover:bg-primary-light text-black font-bold text-xs uppercase tracking-wide rounded-full flex items-center justify-center gap-1.5 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                      whileTap={{ scale: product.inStock ? 0.97 : 1 }}
+                      className="flex-1 h-11 bg-primary hover:bg-primary-light text-background font-semibold text-sm rounded-full flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <span className="material-icons text-sm">bolt</span>
-                      <span>Acheter</span>
+                      {t.buy}
                     </motion.button>
                   </div>
 
-                  {/* Secondary Actions (favorites flow hidden) */}
-                  <div className="flex justify-center gap-4 pt-0.5">
+                  {/* Reassurance */}
+                  <div className="pt-2">
+                    <ReassuranceRow />
+                  </div>
+
+                  {/* Share */}
+                  <div className="flex justify-center pt-0.5">
                     <button
                       onClick={handleShare}
                       className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-white transition-colors"
                     >
-                      <span className="material-icons text-sm" aria-hidden="true">share</span>
-                      Partager
+                      <Share2 className="w-3.5 h-3.5" aria-hidden="true" />
+                      {t.share}
                     </button>
                   </div>
                 </div>
@@ -828,7 +945,7 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
                 className="flex-1 px-2.5 py-1.5 bg-background-card hover:bg-background-card/80 rounded-lg border border-white/10 transition-all flex items-center justify-between group"
               >
                 <div className="flex items-center gap-1.5">
-                  <h2 className="text-[10px] font-light text-white">Avis</h2>
+                  <h2 className="text-[10px] font-light text-white">{t.reviews}</h2>
                   <span className="text-[9px] text-primary">({sortedReviews.length})</span>
                   {stats && (
                     <div className="flex items-center gap-0.5">
@@ -855,8 +972,8 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
                 className="px-3 py-1.5 bg-primary hover:bg-primary-light text-black text-[10px] font-medium rounded-lg transition-all flex items-center gap-1"
               >
                 <span className="material-icons text-xs">edit</span>
-                <span className="hidden sm:inline">Écrire un avis</span>
-                <span className="sm:hidden">Avis</span>
+                <span className="hidden sm:inline">{t.writeReview}</span>
+                <span className="sm:hidden">{t.reviewShort}</span>
               </button>
             </div>
 
@@ -870,8 +987,8 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
                       onChange={(e) => setReviewSort(e.target.value as 'relevance' | 'recent')}
                       className="px-2.5 py-1 bg-background-secondary border border-white/10 rounded-lg text-xs text-white focus:border-primary focus:outline-none"
                     >
-                      <option value="relevance">Par pertinence</option>
-                      <option value="recent">Plus récent</option>
+                      <option value="relevance">{t.sortByRelevance}</option>
+                      <option value="recent">{t.sortMostRecent}</option>
                     </select>
                   </div>
 
@@ -897,7 +1014,7 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
                               )}
                             </div>
                             <span className="text-[9px] text-gray-500">
-                              {new Date(review.date).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' })}
+                              {new Date(review.date).toLocaleDateString(t.dateLocale, { month: 'short', day: 'numeric' })}
                             </span>
                           </div>
 
@@ -914,9 +1031,11 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
                                 onClick={() => openReviewImageLightbox(review.photos!, idx)}
                                 className="w-14 h-14 rounded-md overflow-hidden border border-white/10 hover:border-primary/50 transition-colors cursor-pointer"
                               >
-                                <img
+                                <Image
                                   src={photo}
                                   alt={`Photo ${idx + 1}`}
+                                  width={56}
+                                  height={56}
                                   className="w-full h-full object-cover"
                                 />
                               </div>
@@ -942,7 +1061,7 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
                         onClick={() => setReviewsToShow(prev => prev + 4)}
                         className="w-full sm:w-auto px-4 py-2.5 sm:px-3 sm:py-1.5 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 font-medium rounded-full text-sm sm:text-xs transition-all"
                       >
-                        Voir plus ({sortedReviews.length - reviewsToShow})
+                        {t.seeMoreCount(sortedReviews.length - reviewsToShow)}
                       </button>
                     )}
                     {reviewsToShow > 4 && (
@@ -950,7 +1069,7 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
                         onClick={() => setReviewsToShow(4)}
                         className="w-full sm:w-auto px-4 py-2.5 sm:px-3 sm:py-1.5 bg-white/5 hover:bg-white/10 text-gray-400 border border-white/10 font-medium rounded-full text-sm sm:text-xs transition-all"
                       >
-                        Voir moins
+                        {t.seeLess}
                       </button>
                     )}
                   </div>
@@ -964,13 +1083,13 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
               <div className="max-w-[1920px] mx-auto">
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-base font-bold uppercase tracking-tight text-white">
-                    Produits Similaires
+                    {t.similarProductsHeading}
                   </h2>
                   <Link
-                    href={`/produits?categorie=${product.category}`}
+                    href={categoryPath(product.category)}
                     className="hidden sm:flex items-center gap-1 text-primary hover:text-white transition-colors text-xs group"
                   >
-                    Voir plus
+                    {t.seeMore}
                     <span className="material-icons text-sm group-hover:translate-x-1 transition-transform">
                       arrow_forward
                     </span>
@@ -1002,10 +1121,10 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
 
                 {/* Mobile: Full-width button */}
                 <Link
-                  href={`/produits?categorie=${product.category}`}
+                  href={categoryPath(product.category)}
                   className="sm:hidden mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 font-medium rounded-full text-sm transition-all"
                 >
-                  Voir plus de produits
+                  {t.seeMoreProducts}
                   <span className="material-icons text-sm">arrow_forward</span>
                 </Link>
               </div>
@@ -1019,15 +1138,15 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <h2 className="text-base font-bold uppercase tracking-tight text-white">
-                      Complétez votre achat
+                      {t.completePurchase}
                     </h2>
-                    <p className="text-[10px] text-gray-400 mt-0.5">Fréquemment achetés ensemble</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">{t.boughtTogether}</p>
                   </div>
                   <Link
                     href="/produits"
                     className="hidden sm:flex items-center gap-1 text-primary hover:text-white transition-colors text-xs group"
                   >
-                    Voir plus
+                    {t.seeMore}
                     <span className="material-icons text-sm group-hover:translate-x-1 transition-transform">
                       arrow_forward
                     </span>
@@ -1066,7 +1185,7 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
                   href="/produits"
                   className="sm:hidden mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 font-medium rounded-full text-sm transition-all"
                 >
-                  Voir plus de produits
+                  {t.seeMoreProducts}
                   <span className="material-icons text-sm">arrow_forward</span>
                 </Link>
               </div>
@@ -1136,6 +1255,7 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
                 <img
                   src={image}
                   alt={`Thumbnail ${idx + 1}`}
+                  loading="lazy"
                   className="w-full h-full object-cover"
                 />
               </button>
@@ -1212,6 +1332,7 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
                   <img
                     src={image}
                     alt={`Thumbnail ${idx + 1}`}
+                    loading="lazy"
                     className="w-full h-full object-cover"
                   />
                 </button>
@@ -1236,7 +1357,7 @@ export function ProductDetailClient({ product, relatedProducts, complementaryPro
           className="hidden md:flex fixed bottom-4 right-4 glass-card backdrop-blur-md text-white px-4 py-3 rounded-xl shadow-lg z-[9999] max-w-sm items-center gap-2"
         >
           <span className="material-icons text-primary text-lg">check_circle</span>
-          <span>Produit ajouté au panier</span>
+          <span>{t.addedToCart}</span>
         </motion.div>
       )}
 

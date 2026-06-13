@@ -2,7 +2,39 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
-import { ProductCategory, categoryLabels } from "@/types/product";
+import { ProductCategory, getCategoryLabel } from "@/types/product";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    filters: "Filtres",
+    closeFilters: "Fermer les filtres",
+    categories: "Catégories",
+    price: "Prix",
+    min: "Min (€)",
+    max: "Max (€)",
+    otherFilters: "Autres filtres",
+    inStockOnly: "En stock uniquement",
+    featuredProducts: "Produits vedettes",
+    onSale: "En promotion",
+    reset: "Réinitialiser",
+    apply: "Appliquer",
+  },
+  en: {
+    filters: "Filters",
+    closeFilters: "Close filters",
+    categories: "Categories",
+    price: "Price",
+    min: "Min (€)",
+    max: "Max (€)",
+    otherFilters: "Other filters",
+    inStockOnly: "In stock only",
+    featuredProducts: "Featured products",
+    onSale: "On sale",
+    reset: "Reset",
+    apply: "Apply",
+  },
+} as const;
 
 interface MobileFilterDrawerProps {
   isOpen: boolean;
@@ -39,6 +71,8 @@ export function MobileFilterDrawer({
   onResetFilters,
   categoryCounts,
 }: MobileFilterDrawerProps) {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const [localPriceRange, setLocalPriceRange] = useState<[number, number]>(priceRange);
   const drawerRef = useRef<HTMLDivElement>(null);
 
@@ -112,11 +146,11 @@ export function MobileFilterDrawer({
 
             {/* Sticky Header */}
             <div className="sticky top-0 bg-background-card border-b border-white/10 px-6 py-4 flex items-center justify-between z-10">
-              <h2 className="text-xl font-semibold text-white">Filtres</h2>
+              <h2 className="text-xl font-semibold text-white">{t.filters}</h2>
               <button
                 onClick={onClose}
                 className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors text-white"
-                aria-label="Fermer les filtres"
+                aria-label={t.closeFilters}
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -129,7 +163,7 @@ export function MobileFilterDrawer({
               {/* Categories */}
               <div className="mb-8">
                 <h3 className="text-sm font-semibold text-white uppercase tracking-wide mb-4">
-                  Catégories
+                  {t.categories}
                 </h3>
                 <div className="flex flex-col gap-3">
                   {categories.map((category) => (
@@ -143,7 +177,7 @@ export function MobileFilterDrawer({
                       }`}
                     >
                       <span className="text-sm font-medium">
-                        {categoryLabels[category]}
+                        {getCategoryLabel(category, locale)}
                       </span>
                       <span className="text-xs bg-white/10 px-2 py-1 rounded-full">
                         {categoryCounts[category] || 0}
@@ -156,45 +190,47 @@ export function MobileFilterDrawer({
               {/* Price Range */}
               <div className="mb-8">
                 <h3 className="text-sm font-semibold text-white uppercase tracking-wide mb-4">
-                  Prix
+                  {t.price}
                 </h3>
+                {/* localPriceRange is in CENTS (matches product.price and the
+                    desktop filter); the € inputs convert to/from euros. */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-4">
                     <div className="flex-1">
-                      <label className="text-xs text-text-muted mb-1 block">Min</label>
+                      <label className="text-xs text-text-muted mb-1 block">{t.min}</label>
                       <input
                         type="number"
-                        value={localPriceRange[0]}
-                        onChange={(e) => setLocalPriceRange([Number(e.target.value), localPriceRange[1]])}
+                        value={Math.round(localPriceRange[0] / 100)}
+                        onChange={(e) => setLocalPriceRange([Number(e.target.value) * 100, localPriceRange[1]])}
                         className="w-full bg-background-secondary border border-white/10 rounded-lg px-3 py-3 text-white text-sm focus:border-primary focus:outline-none min-h-[44px]"
                         min={0}
-                        max={localPriceRange[1]}
+                        max={Math.round(localPriceRange[1] / 100)}
                       />
                     </div>
                     <div className="flex-1">
-                      <label className="text-xs text-text-muted mb-1 block">Max</label>
+                      <label className="text-xs text-text-muted mb-1 block">{t.max}</label>
                       <input
                         type="number"
-                        value={localPriceRange[1]}
-                        onChange={(e) => setLocalPriceRange([localPriceRange[0], Number(e.target.value)])}
+                        value={Math.round(localPriceRange[1] / 100)}
+                        onChange={(e) => setLocalPriceRange([localPriceRange[0], Number(e.target.value) * 100])}
                         className="w-full bg-background-secondary border border-white/10 rounded-lg px-3 py-3 text-white text-sm focus:border-primary focus:outline-none min-h-[44px]"
-                        min={localPriceRange[0]}
-                        max={1000}
+                        min={Math.round(localPriceRange[0] / 100)}
+                        max={400}
                       />
                     </div>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-text-muted">
-                    <span>{localPriceRange[0]}€</span>
+                    <span>{Math.round(localPriceRange[0] / 100)}€</span>
                     <div className="flex-1 h-1 bg-white/10 rounded-full relative">
                       <div
                         className="absolute h-full bg-primary rounded-full"
                         style={{
-                          left: `${(localPriceRange[0] / 400) * 100}%`,
-                          right: `${100 - (localPriceRange[1] / 400) * 100}%`,
+                          left: `${(localPriceRange[0] / 40000) * 100}%`,
+                          right: `${100 - (localPriceRange[1] / 40000) * 100}%`,
                         }}
                       />
                     </div>
-                    <span>{localPriceRange[1]}€</span>
+                    <span>{Math.round(localPriceRange[1] / 100)}€</span>
                   </div>
                 </div>
               </div>
@@ -202,7 +238,7 @@ export function MobileFilterDrawer({
               {/* Additional Filters */}
               <div>
                 <h3 className="text-sm font-semibold text-white uppercase tracking-wide mb-4">
-                  Autres filtres
+                  {t.otherFilters}
                 </h3>
                 <div className="flex flex-col gap-3">
                   <button
@@ -213,7 +249,7 @@ export function MobileFilterDrawer({
                         : "bg-background-secondary border-white/10 text-text-muted hover:border-white/20"
                     }`}
                   >
-                    <span className="text-sm font-medium">En stock uniquement</span>
+                    <span className="text-sm font-medium">{t.inStockOnly}</span>
                     <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
                       showInStock ? "border-primary bg-primary" : "border-white/30"
                     }`}>
@@ -233,7 +269,7 @@ export function MobileFilterDrawer({
                         : "bg-background-secondary border-white/10 text-text-muted hover:border-white/20"
                     }`}
                   >
-                    <span className="text-sm font-medium">Produits vedettes</span>
+                    <span className="text-sm font-medium">{t.featuredProducts}</span>
                     <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
                       showFeatured ? "border-primary bg-primary" : "border-white/30"
                     }`}>
@@ -253,7 +289,7 @@ export function MobileFilterDrawer({
                         : "bg-background-secondary border-white/10 text-text-muted hover:border-white/20"
                     }`}
                   >
-                    <span className="text-sm font-medium">En promotion</span>
+                    <span className="text-sm font-medium">{t.onSale}</span>
                     <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
                       showOnSale ? "border-primary bg-primary" : "border-white/30"
                     }`}>
@@ -275,13 +311,13 @@ export function MobileFilterDrawer({
                   onClick={handleReset}
                   className="flex-1 bg-background-secondary border border-white/20 text-white rounded-full font-medium transition-all hover:border-white/40 min-h-[44px] text-sm"
                 >
-                  Réinitialiser
+                  {t.reset}
                 </button>
                 <button
                   onClick={handleApply}
                   className="flex-1 bg-primary text-background-dark rounded-full font-medium transition-all hover:bg-primary-light min-h-[44px] text-sm"
                 >
-                  Appliquer
+                  {t.apply}
                 </button>
               </div>
             </div>

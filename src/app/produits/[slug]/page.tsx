@@ -12,10 +12,26 @@ import {
   generateOpenGraphTags,
   generateTwitterCardTags,
   safeJsonLd,
+  SITE_URL,
 } from "@/lib/seo";
 import { ProductCategory } from "@/types/product";
 import { ProductDetailClient } from "./ProductDetailClient";
 import { ProductViewTracker } from "@/components/product/ProductViewTracker";
+import { getLocale } from "@/lib/i18n/server";
+import { localizeProduct, localizeProducts } from "@/lib/product-i18n";
+
+const STRINGS = {
+  fr: {
+    notFound: "Produit non trouvé",
+    home: "Accueil",
+    products: "Produits",
+  },
+  en: {
+    notFound: "Product not found",
+    home: "Home",
+    products: "Products",
+  },
+} as const;
 
 // Re-render product pages at most every 5 minutes (matches the products
 // data cache); admin mutations revalidate the paths/tag immediately.
@@ -52,21 +68,26 @@ export async function generateMetadata({
   params,
 }: ProductPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const product = await getProductBySlug(slug);
+  const locale = await getLocale();
+  const t = STRINGS[locale];
+  const rawProduct = await getProductBySlug(slug);
 
-  if (!product) {
+  if (!rawProduct) {
+    // template in layout.tsx adds "| Nuage"
     return {
-      title: "Produit non trouvé | Nuage",
+      title: t.notFound,
     };
   }
 
-  const productUrl = `https://nuage.fr/produits/${product.slug}`;
+  const product = localizeProduct(rawProduct, locale);
+  const productPath = `/produits/${product.slug}`;
+  const productUrl = `${SITE_URL}${productPath}`;
 
   // Ensure absolute URL for images
   const productImage = product.images[0];
   const absoluteImageUrl = productImage?.startsWith('http')
     ? productImage
-    : `https://nuage.fr${productImage}`;
+    : `${SITE_URL}${productImage}`;
 
   const ogTags = generateOpenGraphTags({
     title: product.name,
@@ -77,7 +98,8 @@ export async function generateMetadata({
     price: product.price,
     currency: "EUR",
     imageWidth: 1200,
-    imageHeight: 630
+    imageHeight: 630,
+    locale
   });
 
   const twitterTags = generateTwitterCardTags({
@@ -87,10 +109,12 @@ export async function generateMetadata({
   });
 
   return {
-    title: `${product.name} | Nuage`,
+    // template in layout.tsx adds "| Nuage"
+    title: product.name,
     description: product.shortDescription,
     alternates: {
-      canonical: productUrl
+      // relative — resolved against metadataBase (env-driven SITE_URL)
+      canonical: productPath
     },
     openGraph: {
       title: ogTags["og:title"],
@@ -116,31 +140,41 @@ export async function generateMetadata({
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { slug } = await params;
-  const product = await getProductBySlug(slug);
+  const locale = await getLocale();
+  const t = STRINGS[locale];
+  const rawProduct = await getProductBySlug(slug);
 
-  if (!product) {
+  if (!rawProduct) {
     notFound();
   }
+
+  const product = localizeProduct(rawProduct, locale);
 
   // Compute recommendations server-side so we only serialize a handful of
   // products to the client instead of the entire catalog.
   const allProducts = await getAllProducts();
 
-  const relatedProducts = allProducts
-    .filter((p) => p.id !== product.id && p.category === product.category)
-    .slice(0, 4);
+  const relatedProducts = localizeProducts(
+    allProducts
+      .filter((p) => p.id !== product.id && p.category === product.category)
+      .slice(0, 4),
+    locale
+  );
 
   const complementaryCategories = getComplementaryCategories(product.category);
-  const complementaryProducts = allProducts
-    .filter(
-      (p) => p.id !== product.id && complementaryCategories.includes(p.category)
-    )
-    .sort(
-      (a, b) =>
-        complementaryCategories.indexOf(a.category) -
-        complementaryCategories.indexOf(b.category)
-    )
-    .slice(0, 4);
+  const complementaryProducts = localizeProducts(
+    allProducts
+      .filter(
+        (p) => p.id !== product.id && complementaryCategories.includes(p.category)
+      )
+      .sort(
+        (a, b) =>
+          complementaryCategories.indexOf(a.category) -
+          complementaryCategories.indexOf(b.category)
+      )
+      .slice(0, 4),
+    locale
+  );
 
   // Fetch reviews data from database
   const reviews = await getProductReviews(product.id);
@@ -151,8 +185,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   // Generate breadcrumb schema
   const breadcrumbSchema = generateBreadcrumbSchema([
-    { name: "Accueil", url: "/" },
-    { name: "Produits", url: "/produits" },
+    { name: t.home, url: "/" },
+    { name: t.products, url: "/produits" },
     { name: product.name, url: `/produits/${product.slug}` }
   ]);
 

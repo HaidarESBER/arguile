@@ -46,7 +46,7 @@ export async function translateProduct(
     headers: {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://nuage.fr',
+      'HTTP-Referer': 'https://chichanuage.com',
     },
     body: JSON.stringify({
       model: AI_MODEL,

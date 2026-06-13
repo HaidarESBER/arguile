@@ -7,6 +7,26 @@ import Image from "next/image";
 import Link from "next/link";
 import { Product, formatPrice } from "@/types/product";
 import { useCart } from "@/contexts/CartContext";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    closeQuickView: "Fermer l'aperçu rapide",
+    outOfStock: "Rupture de stock",
+    sale: "Promo",
+    quantity: "Quantité",
+    addToCart: "Ajouter au panier",
+    viewDetails: "Voir les détails",
+  },
+  en: {
+    closeQuickView: "Close quick view",
+    outOfStock: "Out of stock",
+    sale: "Sale",
+    quantity: "Quantity",
+    addToCart: "Add to cart",
+    viewDetails: "View details",
+  },
+} as const;
 
 interface QuickViewModalProps {
   product: Product;
@@ -32,6 +52,8 @@ interface QuickViewModalProps {
  */
 export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps) {
   const { addItem } = useCart();
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -140,7 +162,7 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
               {/* Close Button */}
               <button
                 onClick={onClose}
-                aria-label="Fermer l'aperçu rapide"
+                aria-label={t.closeQuickView}
                 className="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-background/80 hover:bg-background transition-colors"
               >
                 <svg
@@ -176,13 +198,13 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
                     {!product.inStock && (
                       <div className="absolute inset-0 bg-primary/60 flex items-center justify-center">
                         <span className="text-background font-medium text-sm uppercase tracking-wide">
-                          Rupture de stock
+                          {t.outOfStock}
                         </span>
                       </div>
                     )}
                     {hasDiscount && product.inStock && (
                       <div className="absolute top-3 left-3 bg-error text-background text-xs font-medium px-2 py-1 rounded">
-                        Promo
+                        {t.sale}
                       </div>
                     )}
                   </div>
@@ -242,7 +264,7 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
 
                   {/* Quantity Selector */}
                   <div className="mb-6">
-                    <label className="block text-sm text-primary mb-2">Quantité</label>
+                    <label className="block text-sm text-primary mb-2">{t.quantity}</label>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -273,14 +295,14 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
                       disabled={!product.inStock}
                       className="w-full inline-flex items-center justify-center px-6 py-3 text-sm font-medium bg-primary text-background rounded-[--radius-button] hover:bg-accent hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Ajouter au panier
+                      {t.addToCart}
                     </button>
                     <Link
                       href={`/produits/${product.slug}`}
                       onClick={onClose}
                       className="w-full inline-flex items-center justify-center px-6 py-3 text-sm font-medium text-primary border border-primary rounded-[--radius-button] hover:bg-primary hover:text-background transition-colors"
                     >
-                      Voir les détails
+                      {t.viewDetails}
                     </Link>
                   </div>
                 </div>

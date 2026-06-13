@@ -61,6 +61,10 @@ const SYNONYMS: Record<string, string[]> = {
   nouveau: ["nouveau", "nouvelle", "new", "nouveauté", "nouveaute", "récent", "recent", "dernier", "dernière"],
 };
 
+// Synonym group keys that are also product categories — used to strongly
+// prioritize in-category products when the query targets a category.
+const CATEGORY_KEYS = new Set(["chicha", "bol", "tuyau", "charbon", "accessoire"]);
+
 // Build a reverse lookup: word → list of synonym group keys
 const REVERSE_SYNONYMS = new Map<string, string[]>();
 for (const [key, words] of Object.entries(SYNONYMS)) {
@@ -241,12 +245,20 @@ function scoreProduct(product: Product, queryTokens: string[], phraseSynonyms: s
     }
   }
 
-  // Category match bonus
+  // Strong category match. When a query word is itself a category keyword
+  // (e.g. "chicha", "bol", "charbon"), products IN that category must rank
+  // far above products that merely MENTION the word in their description —
+  // in a chicha shop nearly every description says "pour chicha", so without
+  // this a search for "chicha" surfaces bowls, hoses and charcoal too.
   for (const qToken of queryTokens) {
-    const synonyms = expandSynonyms(qToken);
-    for (const syn of synonyms) {
-      if (categoryNorm === syn || categoryNorm.includes(syn)) {
-        score += 25;
+    const groups = REVERSE_SYNONYMS.get(normalize(qToken)) || [];
+    for (const groupKey of groups) {
+      if (CATEGORY_KEYS.has(groupKey)) {
+        if (product.category === groupKey) {
+          score += 120; // in the searched category — dominant
+        } else {
+          score -= 15; // mentions the category word but isn't in it — demote
+        }
       }
     }
   }

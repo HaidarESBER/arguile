@@ -4,7 +4,46 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { formatPrice, categoryLabels, ProductCategory } from "@/types/product";
+import { formatPrice, categoryLabels, getCategoryLabel, ProductCategory } from "@/types/product";
+import { categoryPath } from "@/lib/categories";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    searchDialog: "Recherche de produits",
+    closeSearch: "Fermer la recherche",
+    searchProducts: "Rechercher des produits",
+    placeholder: "Chicha, bol, charbon naturel…",
+    clearSearch: "Effacer la recherche",
+    browse: "Parcourir",
+    popularSearches: "Recherches populaires",
+    escKey: "Échap",
+    toClose: "pour fermer",
+    searching: "Recherche…",
+    viewAllResults: "Voir tous les résultats",
+    noResultsFor: "Aucun résultat pour",
+    checkSpelling: "Vérifiez l'orthographe ou essayez un terme plus général.",
+    viewAllProducts: "Voir tous les produits",
+    popular: ["Chicha débutant", "Charbon naturel", "Bol silicone", "Tuyau cuir"],
+  },
+  en: {
+    searchDialog: "Product search",
+    closeSearch: "Close search",
+    searchProducts: "Search products",
+    placeholder: "Hookah, bowl, natural charcoal…",
+    clearSearch: "Clear search",
+    browse: "Browse",
+    popularSearches: "Popular searches",
+    escKey: "Esc",
+    toClose: "to close",
+    searching: "Searching…",
+    viewAllResults: "View all results",
+    noResultsFor: "No results for",
+    checkSpelling: "Check the spelling or try a more general term.",
+    viewAllProducts: "View all products",
+    popular: ["Beginner hookah", "Natural charcoal", "Silicone bowl", "Leather hose"],
+  },
+} as const;
 
 interface SearchOverlayProps {
   isOpen: boolean;
@@ -29,15 +68,9 @@ const BROWSE_CATEGORIES: ProductCategory[] = [
   "accessoire",
 ];
 
-/** Quick-start queries shown while the field is empty. */
-const POPULAR_SEARCHES = [
-  "Chicha débutant",
-  "Charbon naturel",
-  "Bol silicone",
-  "Tuyau cuir",
-];
-
 export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -101,7 +134,9 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
   if (!isOpen) return null;
 
   const categoryLabel = (slug: string) =>
-    categoryLabels[slug as ProductCategory] ?? slug;
+    slug in categoryLabels
+      ? getCategoryLabel(slug as ProductCategory, locale)
+      : slug;
 
   return (
     <AnimatePresence>
@@ -122,7 +157,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
             ref={containerRef}
             role="dialog"
             aria-modal="true"
-            aria-label="Recherche de produits"
+            aria-label={t.searchDialog}
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -135,7 +170,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                   {/* Mobile back button */}
                   <button
                     onClick={onClose}
-                    aria-label="Fermer la recherche"
+                    aria-label={t.closeSearch}
                     className="md:hidden w-11 h-11 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors flex-shrink-0"
                   >
                     <span className="material-icons text-white" aria-hidden="true">arrow_back</span>
@@ -153,14 +188,14 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                       type="text"
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
-                      aria-label="Rechercher des produits"
+                      aria-label={t.searchProducts}
                       className="w-full bg-white/5 border-2 border-white/10 focus:border-primary/60 rounded-xl text-base md:text-lg text-text placeholder-text-muted focus:outline-none py-4 pl-12 md:pl-14 pr-12 transition-all"
-                      placeholder="Chicha, bol, charbon naturel…"
+                      placeholder={t.placeholder}
                     />
                     {query && (
                       <button
                         onClick={() => setQuery("")}
-                        aria-label="Effacer la recherche"
+                        aria-label={t.clearSearch}
                         className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
                       >
                         <span className="material-icons text-xl text-text-muted" aria-hidden="true">close</span>
@@ -174,26 +209,26 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
               {query.length === 0 && (
                 <div className="px-4 md:px-5 pb-6 md:pb-5">
                   <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-3">
-                    Parcourir
+                    {t.browse}
                   </p>
                   <div className="flex flex-wrap gap-2 mb-6">
                     {BROWSE_CATEGORIES.map((cat) => (
                       <Link
                         key={cat}
-                        href={`/produits?categorie=${cat}`}
+                        href={categoryPath(cat)}
                         onClick={onClose}
                         className="px-4 py-2.5 rounded-full border border-white/15 text-sm text-text hover:border-primary/60 hover:text-primary transition-colors"
                       >
-                        {categoryLabels[cat]}
+                        {getCategoryLabel(cat, locale)}
                       </Link>
                     ))}
                   </div>
 
                   <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-3">
-                    Recherches populaires
+                    {t.popularSearches}
                   </p>
                   <div className="flex flex-col">
-                    {POPULAR_SEARCHES.map((term) => (
+                    {t.popular.map((term) => (
                       <button
                         key={term}
                         onClick={() => setQuery(term)}
@@ -211,8 +246,8 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                   </div>
 
                   <p className="hidden md:block text-xs text-text-muted/60 mt-5 pt-4 border-t border-white/5">
-                    <kbd className="px-1.5 py-0.5 rounded border border-white/15 bg-white/5 text-[11px] font-sans">Échap</kbd>{" "}
-                    pour fermer
+                    <kbd className="px-1.5 py-0.5 rounded border border-white/15 bg-white/5 text-[11px] font-sans">{t.escKey}</kbd>{" "}
+                    {t.toClose}
                   </p>
                 </div>
               )}
@@ -228,7 +263,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                   >
                     autorenew
                   </motion.span>
-                  Recherche…
+                  {t.searching}
                 </div>
               )}
 
@@ -278,7 +313,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                     onClick={onClose}
                     className="flex items-center justify-center gap-2 py-4 text-sm md:text-base text-primary hover:text-text hover:bg-white/5 active:bg-white/10 transition-all font-semibold group"
                   >
-                    Voir tous les résultats
+                    {t.viewAllResults}
                     <span
                       aria-hidden="true"
                       className="material-icons text-base group-hover:translate-x-1 transition-transform"
@@ -296,20 +331,20 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                     </span>
                   </div>
                   <p className="text-text-muted text-base mb-2">
-                    Aucun résultat pour <span className="text-text font-medium">&quot;{query}&quot;</span>
+                    {t.noResultsFor} <span className="text-text font-medium">&quot;{query}&quot;</span>
                   </p>
                   <p className="text-text-muted/70 text-sm mb-6">
-                    Vérifiez l&apos;orthographe ou essayez un terme plus général.
+                    {t.checkSpelling}
                   </p>
                   <div className="flex flex-wrap justify-center gap-2 mb-8">
                     {BROWSE_CATEGORIES.slice(0, 3).map((cat) => (
                       <Link
                         key={cat}
-                        href={`/produits?categorie=${cat}`}
+                        href={categoryPath(cat)}
                         onClick={onClose}
                         className="px-4 py-2 rounded-full border border-white/15 text-sm text-text-muted hover:border-primary/60 hover:text-primary transition-colors"
                       >
-                        {categoryLabels[cat]}
+                        {getCategoryLabel(cat, locale)}
                       </Link>
                     ))}
                   </div>
@@ -318,7 +353,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                     onClick={onClose}
                     className="inline-flex items-center gap-2 px-8 py-3.5 bg-primary hover:bg-primary-light text-background-dark rounded-full text-base font-semibold transition-all"
                   >
-                    Voir tous les produits
+                    {t.viewAllProducts}
                     <span aria-hidden="true" className="material-icons text-base">arrow_forward</span>
                   </Link>
                 </div>

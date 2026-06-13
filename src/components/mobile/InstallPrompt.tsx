@@ -4,6 +4,18 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    close: "Fermer",
+    installApp: "Installer l'app",
+  },
+  en: {
+    close: "Close",
+    installApp: "Install the app",
+  },
+} as const;
 
 /**
  * InstallPrompt component for PWA installation
@@ -32,6 +44,8 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export function InstallPrompt() {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const pathname = usePathname();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
@@ -152,7 +166,7 @@ export function InstallPrompt() {
               handleDismiss();
             }}
             className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-background border border-border rounded-full text-muted hover:text-primary hover:border-primary transition-colors"
-            aria-label="Fermer"
+            aria-label={t.close}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -185,7 +199,7 @@ export function InstallPrompt() {
             {/* Text */}
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium text-primary">
-                Installer l&apos;app
+                {t.installApp}
               </p>
             </div>
 

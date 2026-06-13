@@ -8,13 +8,32 @@ import {
   RATE_LIMIT_MESSAGE,
 } from "@/lib/rate-limit";
 
+const STRINGS = {
+  fr: {
+    rateLimited: RATE_LIMIT_MESSAGE,
+    allFieldsRequired: "Tous les champs sont requis",
+    emailExists: "Un compte existe déjà avec cette adresse email",
+    registerError: "Erreur lors de l'inscription",
+  },
+  en: {
+    rateLimited: "Too many requests. Please try again in a few moments.",
+    allFieldsRequired: "All fields are required",
+    emailExists: "An account already exists with this email address",
+    registerError: "Error while creating the account",
+  },
+} as const;
+
 export async function POST(request: NextRequest) {
+  const v = request.cookies.get("locale")?.value;
+  const locale = v === "en" ? "en" : "fr";
+  const t = STRINGS[locale];
+
   try {
     // Rate limit: 5 registrations per minute per IP (abuse mitigation)
     const rate = checkRateLimit(`auth-register:${getClientIp(request)}`, 5);
     if (!rate.allowed) {
       return NextResponse.json(
-        { error: RATE_LIMIT_MESSAGE },
+        { error: t.rateLimited },
         {
           status: 429,
           headers: { "Retry-After": String(rate.retryAfterSeconds) },
@@ -28,13 +47,13 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!email || !password || !firstName || !lastName) {
       return NextResponse.json(
-        { error: "Tous les champs sont requis" },
+        { error: t.allFieldsRequired },
         { status: 400 }
       );
     }
 
     // Validate password strength before calling Supabase
-    const passwordValidation = validatePassword(password);
+    const passwordValidation = validatePassword(password, locale);
     if (!passwordValidation.valid) {
       return NextResponse.json(
         { error: passwordValidation.error },
@@ -62,7 +81,7 @@ export async function POST(request: NextRequest) {
       // Map Supabase error messages to French
       if (error.message.includes("already registered") || error.message.includes("User already registered")) {
         return NextResponse.json(
-          { error: "Un compte existe deja avec cette adresse email" },
+          { error: t.emailExists },
           { status: 400 }
         );
       }
@@ -74,7 +93,7 @@ export async function POST(request: NextRequest) {
 
     if (!data.user) {
       return NextResponse.json(
-        { error: "Erreur lors de l'inscription" },
+        { error: t.registerError },
         { status: 400 }
       );
     }
@@ -117,7 +136,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Registration error:", error);
     return NextResponse.json(
-      { error: "Erreur lors de l'inscription" },
+      { error: t.registerError },
       { status: 400 }
     );
   }

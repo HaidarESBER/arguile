@@ -3,12 +3,102 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ProductCategory, categoryLabels, formatPrice } from "@/types/product";
+import { X } from "lucide-react";
+import { ProductCategory, getCategoryLabel, formatPrice } from "@/types/product";
+import { categoryPath } from "@/lib/categories";
 import type { ProductListItem } from "@/lib/products";
 import { useCart } from "@/contexts/CartContext";
+import { useLocale } from "@/contexts/LocaleContext";
 import { MobileFilterDrawer } from "@/components/product/MobileFilterDrawer";
+
+const STRINGS = {
+  fr: {
+    home: "Accueil",
+    products: "Produits",
+    all: "Tous",
+    categoriesHeading: "Catégories",
+    availability: "Disponibilité",
+    inStockOnly: "En stock uniquement",
+    newArrivals: "Nouveautés",
+    onSale: "En promotion",
+    price: "Prix",
+    under50: "Moins de 50€",
+    range50to150: "50€ - 150€",
+    over150: "Plus de 150€",
+    min: "Min",
+    max: "Max",
+    resetAllFilters: "Réinitialiser tous les filtres",
+    sortRating: "Mieux notés",
+    sortNewest: "Plus récent",
+    sortPriceAsc: "Prix croissant",
+    sortPriceDesc: "Prix décroissant",
+    resultCount: (n: number) => `${n} ${n === 1 ? "résultat" : "résultats"}`,
+    showingResults: (start: number, end: number, total: number) =>
+      `Affichage de ${start}-${end} sur ${total} résultats`,
+    noResult: "Aucun résultat",
+    filters: "Filtres",
+    removeCategoryFilter: (label: string) => `Retirer le filtre ${label}`,
+    removePriceFilter: "Retirer le filtre de prix",
+    removeInStockFilter: "Retirer le filtre En stock",
+    inStockChip: "En stock",
+    removeFeaturedFilter: "Retirer le filtre Coups de cœur",
+    featuredChip: "Coups de cœur",
+    removeSaleFilter: "Retirer le filtre En promotion",
+    onSaleChip: "En promotion",
+    removeSearch: "Retirer la recherche",
+    clearAll: "Tout effacer",
+    addToCart: (name: string) => `Ajouter ${name} au panier`,
+    noProductFound: "Aucun produit trouvé",
+    tryAdjustingFilters:
+      "Essayez d'ajuster vos filtres ou explorez nos catégories ci-dessous.",
+    resetFilters: "Réinitialiser les filtres",
+    addedToCart: "Produit ajouté au panier",
+  },
+  en: {
+    home: "Home",
+    products: "Products",
+    all: "All",
+    categoriesHeading: "Categories",
+    availability: "Availability",
+    inStockOnly: "In stock only",
+    newArrivals: "New arrivals",
+    onSale: "On sale",
+    price: "Price",
+    under50: "Under €50",
+    range50to150: "€50 - €150",
+    over150: "Over €150",
+    min: "Min",
+    max: "Max",
+    resetAllFilters: "Reset all filters",
+    sortRating: "Top rated",
+    sortNewest: "Newest",
+    sortPriceAsc: "Price: low to high",
+    sortPriceDesc: "Price: high to low",
+    resultCount: (n: number) => `${n} ${n === 1 ? "result" : "results"}`,
+    showingResults: (start: number, end: number, total: number) =>
+      `Showing ${start}-${end} of ${total} results`,
+    noResult: "No results",
+    filters: "Filters",
+    removeCategoryFilter: (label: string) => `Remove the ${label} filter`,
+    removePriceFilter: "Remove the price filter",
+    removeInStockFilter: "Remove the In stock filter",
+    inStockChip: "In stock",
+    removeFeaturedFilter: "Remove the Staff picks filter",
+    featuredChip: "Staff picks",
+    removeSaleFilter: "Remove the On sale filter",
+    onSaleChip: "On sale",
+    removeSearch: "Clear the search",
+    clearAll: "Clear all",
+    addToCart: (name: string) => `Add ${name} to cart`,
+    noProductFound: "No products found",
+    tryAdjustingFilters:
+      "Try adjusting your filters or explore our categories below.",
+    resetFilters: "Reset filters",
+    addedToCart: "Product added to cart",
+  },
+} as const;
 
 interface ProduitsClientEnhancedProps {
   products: ProductListItem[];
@@ -16,6 +106,8 @@ interface ProduitsClientEnhancedProps {
   searchQuery?: string;
   ratingsMap?: Record<string, { averageRating: number; totalReviews: number }>;
   initialPage?: number;
+  /** SEO intro paragraph shown under the heading on category pages */
+  intro?: string;
 }
 
 export function ProduitsClientEnhanced({
@@ -24,12 +116,18 @@ export function ProduitsClientEnhanced({
   searchQuery = '',
   ratingsMap = {},
   initialPage = 1,
+  intro,
 }: ProduitsClientEnhancedProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { addItem } = useCart();
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const [selectedCategories, setSelectedCategories] = useState<ProductCategory[]>(activeCategory ? [activeCategory] : []);
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 400]);
+  // priceRange is in CENTS, matching product.price, the chips, sliders and
+  // formatPrice (0–40000 cents = 0–400 €).
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 40000]);
   const [sortOption, setSortOption] = useState("rating");
   const [showInStock, setShowInStock] = useState(false);
   const [showFeatured, setShowFeatured] = useState(false);
@@ -60,9 +158,9 @@ export function ProduitsClientEnhanced({
       result = result.filter((product) => selectedCategories.includes(product.category));
     }
 
-    // Price filter (convert euros to cents for comparison)
+    // Price filter — priceRange and product.price are both in cents
     result = result.filter((product) =>
-      product.price >= priceRange[0] * 100 && product.price <= priceRange[1] * 100
+      product.price >= priceRange[0] && product.price <= priceRange[1]
     );
 
     // Stock filter
@@ -135,14 +233,27 @@ export function ProduitsClientEnhanced({
     setShowOnSale(false);
   };
 
+  // Is the price range different from its default [0, 40000] cents?
+  const isPriceFiltered = priceRange[0] !== 0 || priceRange[1] !== 40000;
+
+  // Any filter active? (searchQuery comes from the URL and is read-only here,
+  // so its chip links back to /produits to clear it.)
+  const hasActiveFilters =
+    selectedCategories.length > 0 ||
+    isPriceFiltered ||
+    showInStock ||
+    showFeatured ||
+    showOnSale ||
+    (searchQuery?.trim().length ?? 0) > 0;
+
   // Sort options
   const sortOptions = [
-    { value: "rating", label: "Mieux notés" },
-    { value: "newest", label: "Plus récent" },
-    { value: "price-asc", label: "Prix croissant" },
-    { value: "price-desc", label: "Prix décroissant" },
+    { value: "rating", label: t.sortRating },
+    { value: "newest", label: t.sortNewest },
+    { value: "price-asc", label: t.sortPriceAsc },
+    { value: "price-desc", label: t.sortPriceDesc },
   ];
-  const currentSortLabel = sortOptions.find(opt => opt.value === sortOption)?.label || "Mieux notés";
+  const currentSortLabel = sortOptions.find(opt => opt.value === sortOption)?.label || t.sortRating;
 
   // Close sort dropdown when clicking outside
   useEffect(() => {
@@ -176,7 +287,7 @@ export function ProduitsClientEnhanced({
       params.set('page', newPage.toString());
     }
 
-    const newUrl = params.toString() ? `/produits?${params.toString()}` : '/produits';
+    const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
     router.push(newUrl, { scroll: true });
 
     // Scroll to top of products
@@ -199,14 +310,14 @@ export function ProduitsClientEnhanced({
         <ol className="inline-flex items-center space-x-1 md:space-x-2">
           <li className="inline-flex items-center">
             <Link href="/" className="inline-flex items-center hover:text-primary transition-colors">
-              Accueil
+              {t.home}
             </Link>
           </li>
           <li>
             <div className="flex items-center">
               <span className="material-icons text-gray-600 text-xs mx-1">chevron_right</span>
               <Link href="/produits" className="hover:text-primary transition-colors">
-                Produits
+                {t.products}
               </Link>
             </div>
           </li>
@@ -214,8 +325,8 @@ export function ProduitsClientEnhanced({
             <li>
               <div className="flex items-center">
                 <span className="material-icons text-gray-600 text-xs mx-1">chevron_right</span>
-                <Link href={`/produits?category=${activeCategory}`} className="text-primary font-medium hover:text-primary-light transition-colors">
-                  {categoryLabels[activeCategory]}
+                <Link href={categoryPath(activeCategory)} className="text-primary font-medium hover:text-primary-light transition-colors">
+                  {getCategoryLabel(activeCategory, locale)}
                 </Link>
               </div>
             </li>
@@ -236,7 +347,7 @@ export function ProduitsClientEnhanced({
                   : "bg-surface-dark/50 text-gray-400 border border-white/10 hover:border-primary/30"
               }`}
             >
-              Tous
+              {t.all}
             </button>
 
             {/* Category buttons */}
@@ -250,7 +361,7 @@ export function ProduitsClientEnhanced({
                     : "bg-surface-dark/50 text-gray-400 border border-white/10 hover:border-primary/30"
                 }`}
               >
-                {categoryLabels[cat]}
+                {getCategoryLabel(cat, locale)}
               </button>
             ))}
           </div>
@@ -263,7 +374,7 @@ export function ProduitsClientEnhanced({
         <aside className="w-full lg:w-52 flex-shrink-0 space-y-4 hidden lg:block text-[0.85rem]">
           {/* Categories */}
           <div>
-            <h3 className="text-xs font-semibold text-white mb-3">Catégories</h3>
+            <h3 className="text-xs font-semibold text-white mb-3">{t.categoriesHeading}</h3>
             <div className="space-y-1.5">
               {categories.map((cat) => (
                 <button
@@ -282,7 +393,7 @@ export function ProduitsClientEnhanced({
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs">{categoryLabels[cat]}</span>
+                    <span className="text-xs">{getCategoryLabel(cat, locale)}</span>
                     <span className="text-[10px] opacity-60">{categoryCounts[cat]}</span>
                   </div>
                 </button>
@@ -294,7 +405,7 @@ export function ProduitsClientEnhanced({
 
           {/* Quick Filters */}
           <div>
-            <h3 className="text-xs font-semibold text-white mb-3">Disponibilité</h3>
+            <h3 className="text-xs font-semibold text-white mb-3">{t.availability}</h3>
             <div className="space-y-1.5">
               <label className="flex items-center gap-2 cursor-pointer group">
                 <div className="relative flex items-center">
@@ -327,7 +438,7 @@ export function ProduitsClientEnhanced({
                   </div>
                 </div>
                 <span className="text-xs text-gray-400 group-hover:text-white transition-colors">
-                  En stock uniquement
+                  {t.inStockOnly}
                 </span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer group">
@@ -361,7 +472,7 @@ export function ProduitsClientEnhanced({
                   </div>
                 </div>
                 <span className="text-xs text-gray-400 group-hover:text-white transition-colors">
-                  Nouveautés
+                  {t.newArrivals}
                 </span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer group">
@@ -395,7 +506,7 @@ export function ProduitsClientEnhanced({
                   </div>
                 </div>
                 <span className="text-xs text-gray-400 group-hover:text-white transition-colors">
-                  En promotion
+                  {t.onSale}
                 </span>
               </label>
             </div>
@@ -405,7 +516,7 @@ export function ProduitsClientEnhanced({
 
           {/* Price Range */}
           <div>
-            <h3 className="text-xs font-semibold text-white mb-3">Prix</h3>
+            <h3 className="text-xs font-semibold text-white mb-3">{t.price}</h3>
 
             {/* Quick price chips */}
             <div className="flex flex-wrap gap-1.5 mb-3">
@@ -417,7 +528,7 @@ export function ProduitsClientEnhanced({
                     : "bg-surface-dark/50 text-gray-400 border border-white/10 hover:border-primary/30"
                 }`}
               >
-                Moins de 50€
+                {t.under50}
               </button>
               <button
                 onClick={() => setPriceRange([5000, 15000])}
@@ -427,7 +538,7 @@ export function ProduitsClientEnhanced({
                     : "bg-surface-dark/50 text-gray-400 border border-white/10 hover:border-primary/30"
                 }`}
               >
-                50€ - 150€
+                {t.range50to150}
               </button>
               <button
                 onClick={() => setPriceRange([15000, 40000])}
@@ -437,7 +548,7 @@ export function ProduitsClientEnhanced({
                     : "bg-surface-dark/50 text-gray-400 border border-white/10 hover:border-primary/30"
                 }`}
               >
-                Plus de 150€
+                {t.over150}
               </button>
             </div>
 
@@ -445,7 +556,7 @@ export function ProduitsClientEnhanced({
             <div className="space-y-2">
               <div>
                 <div className="flex items-center justify-between text-[10px] mb-1.5">
-                  <span className="text-gray-400">Min</span>
+                  <span className="text-gray-400">{t.min}</span>
                   <span className="text-white font-medium">{formatPrice(priceRange[0])}</span>
                 </div>
                 <input
@@ -460,7 +571,7 @@ export function ProduitsClientEnhanced({
               </div>
               <div>
                 <div className="flex items-center justify-between text-[10px] mb-1.5">
-                  <span className="text-gray-400">Max</span>
+                  <span className="text-gray-400">{t.max}</span>
                   <span className="text-white font-medium">{formatPrice(priceRange[1])}</span>
                 </div>
                 <input
@@ -490,7 +601,7 @@ export function ProduitsClientEnhanced({
               }}
               className="w-full px-3 py-2 bg-primary/10 border border-primary/30 rounded-lg text-xs text-primary hover:bg-primary/20 transition-all font-medium"
             >
-              Réinitialiser tous les filtres
+              {t.resetAllFilters}
             </button>
           )}
         </aside>
@@ -501,12 +612,14 @@ export function ProduitsClientEnhanced({
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-xl font-bold text-white">
-                {activeCategory ? categoryLabels[activeCategory] : "Produits"}
+                {activeCategory ? getCategoryLabel(activeCategory, locale) : t.products}
               </h1>
               <p className="text-xs text-gray-400 mt-0.5">
                 {totalProducts > 0
-                  ? `Affichage de ${startIndex + 1}-${Math.min(endIndex, totalProducts)} sur ${totalProducts} résultats`
-                  : '0 résultats'
+                  ? totalProducts <= PRODUCTS_PER_PAGE
+                    ? t.resultCount(totalProducts)
+                    : t.showingResults(startIndex + 1, Math.min(endIndex, totalProducts), totalProducts)
+                  : t.noResult
                 }
               </p>
             </div>
@@ -516,7 +629,7 @@ export function ProduitsClientEnhanced({
                 onClick={() => setIsFilterOpen(true)}
                 className="lg:hidden px-4 py-2.5 bg-surface-dark/50 rounded-lg text-sm text-white border border-white/10 hover:border-primary transition-colors"
               >
-                Filtres
+                {t.filters}
               </button>
 
               {/* Custom Sort Dropdown */}
@@ -574,9 +687,95 @@ export function ProduitsClientEnhanced({
             </div>
           </div>
 
+          {/* SEO intro paragraph (category pages) */}
+          {intro && (
+            <p className="text-xs text-gray-400 leading-relaxed mb-4 max-w-3xl">
+              {intro}
+            </p>
+          )}
+
+          {/* Active filter chips */}
+          {hasActiveFilters && (
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              {selectedCategories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => toggleCategory(cat)}
+                  className="inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 rounded-full text-xs text-primary border border-primary/40 bg-primary/5 hover:bg-primary/15 hover:border-primary/60 transition-all min-h-[32px]"
+                  aria-label={t.removeCategoryFilter(getCategoryLabel(cat, locale))}
+                >
+                  <span>{getCategoryLabel(cat, locale)}</span>
+                  <X className="w-3 h-3" aria-hidden="true" />
+                </button>
+              ))}
+
+              {isPriceFiltered && (
+                <button
+                  onClick={() => setPriceRange([0, 40000])}
+                  className="inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 rounded-full text-xs text-primary border border-primary/40 bg-primary/5 hover:bg-primary/15 hover:border-primary/60 transition-all min-h-[32px]"
+                  aria-label={t.removePriceFilter}
+                >
+                  <span>{formatPrice(priceRange[0])} – {formatPrice(priceRange[1])}</span>
+                  <X className="w-3 h-3" aria-hidden="true" />
+                </button>
+              )}
+
+              {showInStock && (
+                <button
+                  onClick={() => setShowInStock(false)}
+                  className="inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 rounded-full text-xs text-primary border border-primary/40 bg-primary/5 hover:bg-primary/15 hover:border-primary/60 transition-all min-h-[32px]"
+                  aria-label={t.removeInStockFilter}
+                >
+                  <span>{t.inStockChip}</span>
+                  <X className="w-3 h-3" aria-hidden="true" />
+                </button>
+              )}
+
+              {showFeatured && (
+                <button
+                  onClick={() => setShowFeatured(false)}
+                  className="inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 rounded-full text-xs text-primary border border-primary/40 bg-primary/5 hover:bg-primary/15 hover:border-primary/60 transition-all min-h-[32px]"
+                  aria-label={t.removeFeaturedFilter}
+                >
+                  <span>{t.featuredChip}</span>
+                  <X className="w-3 h-3" aria-hidden="true" />
+                </button>
+              )}
+
+              {showOnSale && (
+                <button
+                  onClick={() => setShowOnSale(false)}
+                  className="inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 rounded-full text-xs text-primary border border-primary/40 bg-primary/5 hover:bg-primary/15 hover:border-primary/60 transition-all min-h-[32px]"
+                  aria-label={t.removeSaleFilter}
+                >
+                  <span>{t.onSaleChip}</span>
+                  <X className="w-3 h-3" aria-hidden="true" />
+                </button>
+              )}
+
+              {(searchQuery?.trim().length ?? 0) > 0 && (
+                <Link
+                  href="/produits"
+                  className="inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 rounded-full text-xs text-primary border border-primary/40 bg-primary/5 hover:bg-primary/15 hover:border-primary/60 transition-all min-h-[32px]"
+                  aria-label={t.removeSearch}
+                >
+                  <span>«&nbsp;{searchQuery.trim()}&nbsp;»</span>
+                  <X className="w-3 h-3" aria-hidden="true" />
+                </Link>
+              )}
+
+              <button
+                onClick={resetAllFilters}
+                className="text-xs text-gray-400 hover:text-primary underline underline-offset-2 transition-colors px-1 min-h-[32px]"
+              >
+                {t.clearAll}
+              </button>
+            </div>
+          )}
+
           {/* Products Grid - Clean & Simple */}
           <div className="grid grid-cols-1 min-[360px]:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
-            {paginatedProducts.map((product) => (
+            {paginatedProducts.map((product, productIndex) => (
               <Link
                 key={product.id}
                 href={`/produits/${product.slug}`}
@@ -584,9 +783,10 @@ export function ProduitsClientEnhanced({
               >
                 {/* Image */}
                 <div className="relative aspect-square bg-gradient-to-b from-surface-dark/50 to-black/30 p-4">
-                  {product.featured && (
-                    <span className="absolute top-2 left-2 bg-primary text-background-dark text-xs font-bold px-1.5 py-0.5 rounded">
-                      Nouveau
+                  {/* Real discount badge only — no fake "Nouveau" on every featured item */}
+                  {product.compareAtPrice && product.compareAtPrice > product.price && product.inStock && (
+                    <span className="absolute top-2 left-2 bg-primary text-background-dark text-xs font-bold px-2 py-0.5 rounded">
+                      −{Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)}%
                     </span>
                   )}
                   <div className="relative w-full h-full">
@@ -595,6 +795,7 @@ export function ProduitsClientEnhanced({
                       alt={product.name}
                       fill
                       sizes="(max-width: 768px) 50vw, 25vw"
+                      priority={productIndex < 4}
                       className="object-contain group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
@@ -649,7 +850,7 @@ export function ProduitsClientEnhanced({
                       }}
                       animate={justAddedId === product.id ? { scale: [1, 1.2, 1] } : {}}
                       transition={{ duration: 0.3 }}
-                      aria-label={`Ajouter ${product.name} au panier`}
+                      aria-label={t.addToCart(product.name)}
                       className={`w-10 h-10 md:w-9 md:h-9 rounded-full flex items-center justify-center transition-all ${
                         justAddedId === product.id
                           ? "bg-green-500 text-background-dark"
@@ -729,12 +930,33 @@ export function ProduitsClientEnhanced({
           )}
 
           {filteredProducts.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-32">
+            <div className="flex flex-col items-center justify-center text-center py-24 px-4">
               <div className="w-20 h-20 rounded-full bg-background-secondary flex items-center justify-center mb-6">
                 <span className="material-icons text-4xl text-gray-400">search_off</span>
               </div>
-              <h3 className="text-xl font-light text-primary mb-2">Aucun produit trouvé</h3>
-              <p className="text-sm text-gray-400 mb-8">Essayez d&apos;ajuster vos filtres</p>
+              <h3 className="text-xl font-light text-primary mb-2">{t.noProductFound}</h3>
+              <p className="text-sm text-gray-400 mb-8 max-w-sm">
+                {t.tryAdjustingFilters}
+              </p>
+
+              <button
+                onClick={resetAllFilters}
+                className="bg-primary text-background font-semibold rounded-full px-6 py-3 text-sm hover:bg-primary-light transition-all min-h-[44px] mb-8"
+              >
+                {t.resetFilters}
+              </button>
+
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {categories.map((cat) => (
+                  <Link
+                    key={cat}
+                    href={categoryPath(cat)}
+                    className="inline-flex items-center px-4 py-2 rounded-full text-xs text-primary border border-primary/40 hover:bg-primary/15 hover:border-primary/60 transition-all min-h-[44px]"
+                  >
+                    {getCategoryLabel(cat, locale)}
+                  </Link>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -768,7 +990,7 @@ export function ProduitsClientEnhanced({
           className="hidden md:flex fixed bottom-4 right-4 glass-card backdrop-blur-md text-white px-4 py-3 rounded-xl shadow-lg z-50 max-w-sm items-center gap-2"
         >
           <span className="material-icons text-primary text-lg">check_circle</span>
-          <span>Produit ajouté au panier</span>
+          <span>{t.addedToCart}</span>
         </motion.div>
       )}
     </main>

@@ -3,16 +3,94 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { Truck } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
-import { formatPrice } from "@/types/product";
+import { formatPrice, getCategoryLabel } from "@/types/product";
 import { calculateSubtotal, calculateTotalItems } from "@/types/cart";
+import { FREE_SHIPPING_THRESHOLD } from "@/lib/shipping";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    title: "Mon Panier",
+    itemCount: (n: number) => `(${n} article${n > 1 ? 's' : ''})`,
+    invalidPromo: "Code promo invalide",
+    promoValidationError: "Erreur lors de la validation du code promo",
+    emptyTitle: "Votre panier est vide",
+    emptySubtitle: "Découvrez nos produits et trouvez votre bonheur",
+    viewProducts: "Voir nos produits",
+    exploreCategory: "Ou explorez une catégorie",
+    inStock: "En stock",
+    perUnit: "unité",
+    remove: "Supprimer",
+    summary: "Résumé",
+    freeShippingActive: "Vous bénéficiez de la livraison offerte",
+    freeShippingRemaining: "Plus que",
+    freeShippingRemainingSuffix: "pour la livraison offerte",
+    freeShippingProgress: "Progression vers la livraison offerte",
+    subtotal: "Sous-total",
+    discount: "Réduction",
+    estimatedShipping: "Livraison estimée",
+    calculatedNextStep: "Calculé à l'étape suivante",
+    taxes: "Taxes",
+    included: "Incluses",
+    promoPlaceholder: "Code promo",
+    apply: "APPLIQUER",
+    codeApplied: (code: string) => `✓ Code ${code} appliqué :`,
+    total: "Total",
+    proceedToPayment: "Procéder au Paiement",
+    securePayment: "Paiement sécurisé. Retours gratuits sous 30 jours.",
+    needHelp: "Besoin d'aide ?",
+    contactSupport: "Contactez notre support au 01 23 45 67 89",
+  },
+  en: {
+    title: "My Cart",
+    itemCount: (n: number) => `(${n} item${n > 1 ? 's' : ''})`,
+    invalidPromo: "Invalid discount code",
+    promoValidationError: "Error while validating the discount code",
+    emptyTitle: "Your cart is empty",
+    emptySubtitle: "Discover our products and find what you love",
+    viewProducts: "View our products",
+    exploreCategory: "Or explore a category",
+    inStock: "In stock",
+    perUnit: "each",
+    remove: "Remove",
+    summary: "Summary",
+    freeShippingActive: "You qualify for free shipping",
+    freeShippingRemaining: "Only",
+    freeShippingRemainingSuffix: "away from free shipping",
+    freeShippingProgress: "Progress towards free shipping",
+    subtotal: "Subtotal",
+    discount: "Discount",
+    estimatedShipping: "Estimated shipping",
+    calculatedNextStep: "Calculated at the next step",
+    taxes: "Taxes",
+    included: "Included",
+    promoPlaceholder: "Discount code",
+    apply: "APPLY",
+    codeApplied: (code: string) => `✓ Code ${code} applied:`,
+    total: "Total",
+    proceedToPayment: "Proceed to Payment",
+    securePayment: "Secure payment. Free returns within 30 days.",
+    needHelp: "Need help?",
+    contactSupport: "Contact our support team on 01 23 45 67 89",
+  },
+} as const;
 
 export default function PanierPage() {
   const { items, updateQuantity, removeItem } = useCart();
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const [promoCode, setPromoCode] = useState("");
 
   const totalItems = calculateTotalItems(items);
   const subtotal = calculateSubtotal(items);
+  const remainingForFreeShipping = FREE_SHIPPING_THRESHOLD - subtotal;
+  const hasFreeShipping = subtotal >= FREE_SHIPPING_THRESHOLD;
+  const freeShippingProgress = Math.min(
+    100,
+    Math.round((subtotal / FREE_SHIPPING_THRESHOLD) * 100)
+  );
   const [discount, setDiscount] = useState(0);
   const [appliedCode, setAppliedCode] = useState<string | null>(null);
   const [promoError, setPromoError] = useState("");
@@ -42,13 +120,13 @@ export default function PanierPage() {
         // (DiscountCodeInput auto-applies "pendingDiscountCode")
         sessionStorage.setItem("pendingDiscountCode", data.promotion.code);
       } else {
-        setPromoError(data.error || "Code promo invalide");
+        setPromoError(data.error || t.invalidPromo);
         setDiscount(0);
         setAppliedCode(null);
         sessionStorage.removeItem("pendingDiscountCode");
       }
     } catch {
-      setPromoError("Erreur lors de la validation du code promo");
+      setPromoError(t.promoValidationError);
       setDiscount(0);
       setAppliedCode(null);
     } finally {
@@ -59,7 +137,7 @@ export default function PanierPage() {
   return (
     <main className="flex-grow w-full max-w-[1600px] mx-auto px-4 md:px-8 py-6 bg-background-dark text-white min-h-screen">
       <h1 className="text-2xl md:text-3xl font-light mb-6 text-white">
-        Mon Panier <span className="text-gray-400 text-lg md:text-xl ml-2 font-thin">({totalItems} article{totalItems > 1 ? 's' : ''})</span>
+        {t.title} <span className="text-gray-400 text-lg md:text-xl ml-2 font-thin">{t.itemCount(totalItems)}</span>
       </h1>
 
       {items.length === 0 ? (
@@ -71,14 +149,38 @@ export default function PanierPage() {
           <div className="w-20 h-20 rounded-full bg-surface-dark flex items-center justify-center mx-auto mb-6">
             <span className="material-icons text-4xl text-gray-400">shopping_cart</span>
           </div>
-          <h2 className="text-xl text-white mb-2">Votre panier est vide</h2>
-          <p className="text-gray-400 mb-8">Découvrez nos produits et trouvez votre bonheur</p>
+          <h2 className="text-xl text-white mb-2">{t.emptyTitle}</h2>
+          <p className="text-gray-400 mb-8">{t.emptySubtitle}</p>
           <Link
             href="/produits"
             className="inline-block px-8 py-4 bg-primary hover:bg-primary-light text-background-dark font-bold rounded-full transition-all"
           >
-            Voir nos produits
+            {t.viewProducts}
           </Link>
+
+          <div className="mt-8">
+            <p className="text-xs text-gray-500 mb-4">{t.exploreCategory}</p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href="/produits/chichas"
+                className="inline-flex items-center min-h-[44px] px-5 py-2.5 rounded-full border border-white/20 text-sm text-white hover:border-primary hover:text-primary transition-colors"
+              >
+                {getCategoryLabel("chicha", locale)}
+              </Link>
+              <Link
+                href="/produits/bols"
+                className="inline-flex items-center min-h-[44px] px-5 py-2.5 rounded-full border border-white/20 text-sm text-white hover:border-primary hover:text-primary transition-colors"
+              >
+                {getCategoryLabel("bol", locale)}
+              </Link>
+              <Link
+                href="/produits/charbons"
+                className="inline-flex items-center min-h-[44px] px-5 py-2.5 rounded-full border border-white/20 text-sm text-white hover:border-primary hover:text-primary transition-colors"
+              >
+                {getCategoryLabel("charbon", locale)}
+              </Link>
+            </div>
+          </div>
         </motion.div>
       ) : (
         <div className="flex flex-col lg:flex-row gap-8 relative">
@@ -111,7 +213,7 @@ export default function PanierPage() {
                       <div className="space-y-0.5">
                         <h3 className="text-base font-medium text-white">{item.product.name}</h3>
                         <p className="text-xs text-gray-400">{item.product.shortDescription}</p>
-                        <p className="text-xs text-primary">En stock</p>
+                        <p className="text-xs text-primary">{t.inStock}</p>
                       </div>
 
                       <div className="flex items-center justify-between md:justify-end gap-8 mt-2 md:mt-0">
@@ -145,7 +247,7 @@ export default function PanierPage() {
                           </p>
                           {item.quantity > 1 && (
                             <p className="text-[10px] text-gray-400">
-                              {formatPrice(item.product.price)} / unité
+                              {formatPrice(item.product.price)} / {t.perUnit}
                             </p>
                           )}
                         </div>
@@ -155,7 +257,7 @@ export default function PanierPage() {
                     {/* Remove Button */}
                     <button
                       onClick={() => removeItem(item.product.id)}
-                      aria-label="Supprimer"
+                      aria-label={t.remove}
                       className="absolute top-4 right-4 text-gray-400 hover:text-red-400 transition-colors"
                     >
                       <span className="material-icons-outlined">close</span>
@@ -171,26 +273,62 @@ export default function PanierPage() {
           <div className="w-full lg:w-1/3">
             <div className="sticky top-28 space-y-6">
               <div className="bg-surface-dark/40 backdrop-blur-md border border-white/10 rounded-xl p-6 md:p-8">
-                <h2 className="text-xl font-light text-white mb-6 pb-4 border-b border-white/10">Résumé</h2>
+                <h2 className="text-xl font-light text-white mb-6 pb-4 border-b border-white/10">{t.summary}</h2>
+
+                {/* Free Shipping Progress */}
+                <div className="mb-6 rounded-lg bg-background-dark/40 border border-white/10 p-4">
+                  {hasFreeShipping ? (
+                    <div className="flex items-center gap-3 text-sm text-primary">
+                      <Truck className="w-5 h-5 shrink-0" strokeWidth={1.5} aria-hidden="true" />
+                      <span className="font-medium">{t.freeShippingActive}</span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-3 mb-3">
+                        <Truck className="w-5 h-5 shrink-0 text-gray-400" strokeWidth={1.5} aria-hidden="true" />
+                        <p className="text-sm text-gray-300">
+                          {t.freeShippingRemaining}{" "}
+                          <span className="font-medium text-primary">
+                            {formatPrice(remainingForFreeShipping)}
+                          </span>{" "}
+                          {t.freeShippingRemainingSuffix}
+                        </p>
+                      </div>
+                      <div
+                        className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden"
+                        role="progressbar"
+                        aria-valuenow={freeShippingProgress}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-label={t.freeShippingProgress}
+                      >
+                        <div
+                          className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out"
+                          style={{ width: `${freeShippingProgress}%` }}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
 
                 <div className="space-y-4 mb-6">
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-400">Sous-total</span>
+                    <span className="text-gray-400">{t.subtotal}</span>
                     <span className="font-medium text-white">{formatPrice(subtotal)}</span>
                   </div>
                   {discount > 0 && (
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-primary">Réduction</span>
+                      <span className="text-primary">{t.discount}</span>
                       <span className="font-medium text-primary">-{formatPrice(discount)}</span>
                     </div>
                   )}
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-400">Livraison estimée</span>
-                    <span className="text-gray-500 italic text-xs">Calculé à l&apos;étape suivante</span>
+                    <span className="text-gray-400">{t.estimatedShipping}</span>
+                    <span className="text-gray-500 italic text-xs">{t.calculatedNextStep}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-400">Taxes</span>
-                    <span className="font-medium text-white">Incluses</span>
+                    <span className="text-gray-400">{t.taxes}</span>
+                    <span className="font-medium text-white">{t.included}</span>
                   </div>
                 </div>
 
@@ -208,14 +346,14 @@ export default function PanierPage() {
                         if (e.key === 'Enter') handleApplyPromo();
                       }}
                       className="w-full bg-background-dark/50 border border-white/20 rounded-lg py-2.5 px-4 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none text-white placeholder-gray-500"
-                      placeholder="Code promo"
+                      placeholder={t.promoPlaceholder}
                     />
                     <button
                       onClick={handleApplyPromo}
                       disabled={isApplyingPromo}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium text-primary hover:text-white transition-colors px-2 py-1 disabled:opacity-50"
                     >
-                      {isApplyingPromo ? "..." : "APPLIQUER"}
+                      {isApplyingPromo ? "..." : t.apply}
                     </button>
                   </div>
                   {promoError && (
@@ -223,13 +361,13 @@ export default function PanierPage() {
                   )}
                   {appliedCode && discount > 0 && (
                     <p className="text-primary text-xs mt-2">
-                      ✓ Code {appliedCode} appliqué : -{formatPrice(discount)}
+                      {t.codeApplied(appliedCode)} -{formatPrice(discount)}
                     </p>
                   )}
                 </div>
 
                 <div className="flex justify-between items-end mb-8 pt-6 border-t border-white/10">
-                  <span className="text-base font-medium text-white">Total</span>
+                  <span className="text-base font-medium text-white">{t.total}</span>
                   <div className="text-right">
                     <span className="text-2xl font-semibold text-primary">{formatPrice(subtotal - discount)}</span>
                   </div>
@@ -239,7 +377,7 @@ export default function PanierPage() {
                   href="/commande"
                   className="block w-full bg-primary hover:bg-primary-light text-background-dark font-medium py-4 px-6 rounded-lg transition-all transform active:scale-[0.99] text-center"
                 >
-                  Procéder au Paiement
+                  {t.proceedToPayment}
                 </Link>
 
                 <div className="mt-6 flex flex-col items-center gap-3">
@@ -249,7 +387,7 @@ export default function PanierPage() {
                     <span className="material-icons-outlined text-xl">replay</span>
                   </div>
                   <p className="text-xs text-center text-gray-600">
-                    Paiement sécurisé. Retours gratuits sous 30 jours.
+                    {t.securePayment}
                   </p>
                 </div>
               </div>
@@ -260,8 +398,8 @@ export default function PanierPage() {
                   <span className="material-icons-outlined">support_agent</span>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">Besoin d&apos;aide ?</p>
-                  <p className="text-xs text-gray-400">Contactez notre support au 01 23 45 67 89</p>
+                  <p className="text-sm font-medium text-white">{t.needHelp}</p>
+                  <p className="text-xs text-gray-400">{t.contactSupport}</p>
                 </div>
               </div>
             </div>

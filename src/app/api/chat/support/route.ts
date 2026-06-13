@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SITE_KNOWLEDGE, CHATBOT_PERSONALITY } from '@/lib/chatbot/knowledge';
+import { getSiteKnowledge, getChatbotPersonality } from '@/lib/chatbot/knowledge';
 import { createClient } from '@supabase/supabase-js';
 import {
   checkRateLimit,
@@ -12,6 +12,36 @@ import { SUPPORT_EMAIL } from '@/lib/support';
 // via service-role for anonymous users, so cap conversation size and length.
 const MAX_MESSAGES = 20;
 const MAX_MESSAGE_LENGTH = 2000;
+
+// User-visible fallback/error strings, localized via the "locale" cookie.
+const STRINGS = {
+  fr: {
+    rateLimit: RATE_LIMIT_MESSAGE,
+    configError: "Erreur de configuration - clé API manquante. Contactez le support.",
+    conversationTooLong: "Conversation trop longue. Merci de rafraîchir la page.",
+    invalidMessage: (max: number) =>
+      `Message invalide ou trop long (maximum ${max} caractères).`,
+    groqError: (email: string) =>
+      `Désolé habibi, j'ai un petit souci technique 😅 Réessaie dans quelques secondes ou contacte ${email}`,
+    genericError: (email: string) =>
+      `Désolé, j'ai un petit problème technique. Peux-tu réessayer ou contacter ${email} ?`,
+    languageInstruction:
+      "IMPORTANT : Le visiteur utilise le site en français. Réponds TOUJOURS en français.",
+  },
+  en: {
+    rateLimit: "Too many requests. Please try again in a few moments.",
+    configError: "Configuration error - API key missing. Contact support.",
+    conversationTooLong: "Conversation too long. Please refresh the page.",
+    invalidMessage: (max: number) =>
+      `Invalid or overly long message (maximum ${max} characters).`,
+    groqError: (email: string) =>
+      `Sorry habibi, I'm having a little technical hiccup 😅 Try again in a few seconds or contact ${email}`,
+    genericError: (email: string) =>
+      `Sorry, I'm having a little technical issue. Can you try again or contact ${email}?`,
+    languageInstruction:
+      "IMPORTANT: The visitor is browsing the site in English. ALWAYS reply in English, while keeping the same warm personality.",
+  },
+} as const;
 
 /**
  * Get all products from Supabase
@@ -35,12 +65,17 @@ async function getAllProducts() {
  * Cost: 100% FREE! (Llama 3.3 70B)
  */
 export async function POST(request: NextRequest) {
+  // Visitor language, set by the middleware/footer switcher
+  const v = request.cookies.get("locale")?.value;
+  const locale = v === "en" ? "en" : "fr";
+  const t = STRINGS[locale];
+
   try {
     // Rate limit: 10 requests per minute per IP
     const rate = checkRateLimit(`chat-support:${getClientIp(request)}`, 10);
     if (!rate.allowed) {
       return NextResponse.json(
-        { error: RATE_LIMIT_MESSAGE, message: RATE_LIMIT_MESSAGE },
+        { error: t.rateLimit, message: t.rateLimit },
         {
           status: 429,
           headers: { 'Retry-After': String(rate.retryAfterSeconds) },
@@ -52,7 +87,7 @@ export async function POST(request: NextRequest) {
     if (!process.env.GROQ_API_KEY) {
       console.error('[Chatbot] GROQ_API_KEY not set in environment');
       return NextResponse.json({
-        message: "Configuration error - API key missing. Contact support.",
+        message: t.configError,
         error: true,
       }, { status: 200 });
     }
@@ -69,7 +104,7 @@ export async function POST(request: NextRequest) {
     // Cap conversation size and individual message length (cost guard)
     if (messages.length > MAX_MESSAGES) {
       return NextResponse.json(
-        { error: 'Conversation trop longue. Merci de rafraîchir la page.' },
+        { error: t.conversationTooLong },
         { status: 400 }
       );
     }
@@ -80,7 +115,7 @@ export async function POST(request: NextRequest) {
         msg.content.length > MAX_MESSAGE_LENGTH
       ) {
         return NextResponse.json(
-          { error: `Message invalide ou trop long (maximum ${MAX_MESSAGE_LENGTH} caractères).` },
+          { error: t.invalidMessage(MAX_MESSAGE_LENGTH) },
           { status: 400 }
         );
       }
@@ -90,7 +125,9 @@ export async function POST(request: NextRequest) {
     const products = await getAllProducts();
 
 
-    // Build system prompt with real products + knowledge base
+    // Build system prompt with real products + knowledge base (locale-aware)
+    const knowledge = getSiteKnowledge(locale);
+    const personality = getChatbotPersonality(locale);
     const productsInfo = products.map(p => {
       const price = typeof p.price === 'number' ? (p.price / 100).toFixed(2) : p.price;
       const comparePrice = p.compare_at_price || p.compareAtPrice;
@@ -101,7 +138,7 @@ export async function POST(request: NextRequest) {
       return `- ${p.name} [slug: ${p.slug}]: ${price}€${comparePrice ? ` (était ${(comparePrice/100).toFixed(2)}€)` : ''} - ${description.substring(0, 100)} ${inStock ? `(${stock} en stock)` : '(RUPTURE DE STOCK)'}`;
     }).join('\n');
 
-    const systemPrompt = `${CHATBOT_PERSONALITY}
+    const systemPrompt = `${personality}
 
 PRODUITS RÉELS DU SITE - CATALOGUE COMPLET (${products.length} produits):
 Ces produits sont TOUS les produits disponibles. Recommande UNIQUEMENT ceux-ci par leur NOM EXACT.
@@ -111,30 +148,32 @@ ${productsInfo}
 BASE DE CONNAISSANCES NUAGE:
 
 BOUTIQUE:
-${JSON.stringify(SITE_KNOWLEDGE.store, null, 2)}
+${JSON.stringify(knowledge.store, null, 2)}
 
 CATÉGORIES GÉNÉRALES:
-${JSON.stringify(SITE_KNOWLEDGE.products, null, 2)}
+${JSON.stringify(knowledge.products, null, 2)}
 
 LIVRAISON:
-${JSON.stringify(SITE_KNOWLEDGE.shipping, null, 2)}
+${JSON.stringify(knowledge.shipping, null, 2)}
 
 RETOURS:
-${JSON.stringify(SITE_KNOWLEDGE.returns, null, 2)}
+${JSON.stringify(knowledge.returns, null, 2)}
 
 PAIEMENT:
-${JSON.stringify(SITE_KNOWLEDGE.payment, null, 2)}
+${JSON.stringify(knowledge.payment, null, 2)}
 
 SUPPORT:
-${JSON.stringify(SITE_KNOWLEDGE.support, null, 2)}
+${JSON.stringify(knowledge.support, null, 2)}
 
 CONSEILS D'UTILISATION:
-${JSON.stringify(SITE_KNOWLEDGE.usage, null, 2)}
+${JSON.stringify(knowledge.usage, null, 2)}
 
 FAQ:
-${SITE_KNOWLEDGE.faq.map(item => `Q: ${item.q}\nR: ${item.a}`).join('\n\n')}
+${knowledge.faq.map(item => `Q: ${item.q}\nR: ${item.a}`).join('\n\n')}
 
 ---
+
+${t.languageInstruction}
 
 Réponds maintenant au message du client en utilisant ces informations.
 `;
@@ -164,7 +203,7 @@ Réponds maintenant au message du client en utilisant ces informations.
 
       // Return a friendly error to the user
       return NextResponse.json({
-        message: `Désolé habibi, j'ai un petit souci technique 😅 Réessaie dans quelques secondes ou contacte ${SUPPORT_EMAIL}`,
+        message: t.groqError(SUPPORT_EMAIL),
         error: true,
       }, { status: 200 }); // Return 200 so UI doesn't break
     }
@@ -213,7 +252,7 @@ Réponds maintenant au message du client en utilisant ces informations.
     return NextResponse.json(
       {
         error: 'Failed to get response',
-        message: `Désolé, j'ai un petit problème technique. Peux-tu réessayer ou contacter ${SUPPORT_EMAIL} ?`,
+        message: t.genericError(SUPPORT_EMAIL),
       },
       { status: 500 }
     );

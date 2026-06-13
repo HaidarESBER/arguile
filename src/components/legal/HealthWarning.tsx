@@ -2,6 +2,22 @@
 
 import { useEffect, useState } from "react";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    ariaLabel: "Avertissement sanitaire",
+    warning: "Fumer est dangereux pour la santé.",
+    minors: " Vente interdite aux mineurs — 18+ uniquement.",
+    close: "Fermer l'avertissement",
+  },
+  en: {
+    ariaLabel: "Health warning",
+    warning: "Smoking is harmful to your health.",
+    minors: " Sale to minors prohibited — 18+ only.",
+    close: "Close the warning",
+  },
+} as const;
 
 const DISMISS_KEY = "health-warning-dismissed";
 
@@ -13,6 +29,8 @@ const DISMISS_KEY = "health-warning-dismissed";
  *   next visit so the sanitary message stays regularly visible
  */
 export function HealthWarning() {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   // Start visible (SSR renders the banner); hide after mount if dismissed
   const [dismissed, setDismissed] = useState(false);
 
@@ -34,7 +52,7 @@ export function HealthWarning() {
   return (
     <div
       role="note"
-      aria-label="Avertissement sanitaire"
+      aria-label={t.ariaLabel}
       className="relative z-[9998] bg-[#241f1a] border-b border-white/5"
     >
       <div className="max-w-7xl mx-auto px-3 py-1">
@@ -44,12 +62,12 @@ export function HealthWarning() {
             aria-hidden="true"
           />
           <p className="text-xs text-text-muted text-center">
-            Fumer est dangereux pour la santé.
-            <span className="hidden sm:inline"> Vente interdite aux mineurs — 18+ uniquement.</span>
+            {t.warning}
+            <span className="hidden sm:inline">{t.minors}</span>
           </p>
           <button
             onClick={handleDismiss}
-            aria-label="Fermer l'avertissement"
+            aria-label={t.close}
             className="ml-1 w-6 h-6 flex items-center justify-center rounded-full text-text-muted hover:text-text hover:bg-white/10 transition-colors flex-shrink-0"
           >
             <svg

@@ -1,6 +1,11 @@
 import { CountryRegion } from "@/data/countries";
 
 /**
+ * Locale for user-facing shipping strings.
+ */
+type ShippingLocale = "fr" | "en";
+
+/**
  * Shipping method types
  */
 export type ShippingMethod = "standard" | "express";
@@ -83,6 +88,35 @@ const SHIPPING_RATES: Record<
 };
 
 /**
+ * English translations for the delivery-time estimates above, keyed by the
+ * French source string. Keep in sync with the `estimatedDays` values in
+ * SHIPPING_RATES. The French values stay the single source of truth.
+ */
+const ESTIMATED_DAYS_EN: Record<string, string> = {
+  "2-3 jours ouvrés": "2-3 business days",
+  "24h": "24h",
+  "3-5 jours ouvrés": "3-5 business days",
+  "5-7 jours ouvrés": "5-7 business days",
+  "3-4 jours ouvrés": "3-4 business days",
+  "7-10 jours ouvrés": "7-10 business days",
+  "4-6 jours ouvrés": "4-6 business days",
+};
+
+/**
+ * Localize a delivery-time estimate. Falls back to the French source string
+ * when no English translation is registered.
+ */
+function localizeEstimatedDays(
+  estimatedDays: string,
+  locale: ShippingLocale
+): string {
+  if (locale === "en") {
+    return ESTIMATED_DAYS_EN[estimatedDays] ?? estimatedDays;
+  }
+  return estimatedDays;
+}
+
+/**
  * Free standard shipping threshold for France, in cents.
  * Advertised on product pages and the announcement bar — keep all three in
  * sync (this constant is the single source of truth).
@@ -93,22 +127,28 @@ export const FREE_SHIPPING_THRESHOLD = 5000; // €50
  * Calculate shipping cost based on country region and method.
  * When the order subtotal (cents) is provided and reaches the threshold,
  * standard shipping to France is free.
+ * @param locale - Locale for the user-facing delivery-time estimate (defaults to "fr")
  */
 export function calculateShippingCost(
   region: CountryRegion,
   method: ShippingMethod = "standard",
-  subtotalCents?: number
+  subtotalCents?: number,
+  locale: ShippingLocale = "fr"
 ): ShippingRate {
   const rate = SHIPPING_RATES[region][method];
+  const localizedRate: ShippingRate = {
+    ...rate,
+    estimatedDays: localizeEstimatedDays(rate.estimatedDays, locale),
+  };
   if (
     region === "france" &&
     method === "standard" &&
     subtotalCents !== undefined &&
     subtotalCents >= FREE_SHIPPING_THRESHOLD
   ) {
-    return { ...rate, cost: 0 };
+    return { ...localizedRate, cost: 0 };
   }
-  return rate;
+  return localizedRate;
 }
 
 /**
@@ -131,7 +171,12 @@ export function shouldShowCustomsWarning(
 
 /**
  * Get customs warning message
+ * @param locale - Locale for the user-facing message (defaults to "fr")
  */
-export function getCustomsWarningMessage(): string {
-  return "Attention : Des frais de douane peuvent s'appliquer pour les envois hors UE de plus de €200.";
+export function getCustomsWarningMessage(locale: ShippingLocale = "fr"): string {
+  const MESSAGES = {
+    fr: "Attention : Des frais de douane peuvent s'appliquer pour les envois hors UE de plus de €200.",
+    en: "Warning: Customs fees may apply to shipments outside the EU over €200.",
+  } as const;
+  return MESSAGES[locale];
 }

@@ -3,9 +3,24 @@ import { getAllProducts } from "@/lib/products";
 import { getBatchProductRatingStats } from "@/lib/reviews";
 import { generateWebSiteSchema, safeJsonLd } from "@/lib/seo";
 import { Product } from "@/types/product";
+import { getLocale } from "@/lib/i18n/server";
+import { localizeProducts } from "@/lib/product-i18n";
 import { HomeClient } from "./HomeClient";
 
 const BEST_SELLERS_COUNT = 10;
+
+const STRINGS = {
+  fr: {
+    metaTitle: "Nuage | L'art de la détente — Chicha premium en France",
+    metaDescription:
+      "Boutique en ligne de chichas et accessoires haut de gamme. Chichas, bols, tuyaux, charbon et accessoires de qualité supérieure. Livraison en France.",
+  },
+  en: {
+    metaTitle: "Nuage | The art of relaxation — Premium hookahs in France",
+    metaDescription:
+      "Online shop for premium hookahs and accessories. Top-quality hookahs, bowls, hoses, charcoal and accessories. Shipping across France.",
+  },
+} as const;
 
 /** Products with at least one real (non-placeholder) photo. */
 function withRealImages(allProducts: Product[]): Product[] {
@@ -21,16 +36,20 @@ function withRealImages(allProducts: Product[]): Product[] {
   );
 }
 
-export const metadata: Metadata = {
-  title: "Nuage | L'art de la détente - Chicha Premium en France",
-  description:
-    "Boutique en ligne de chichas et accessoires haut de gamme. Chichas, bols, tuyaux, charbon et accessoires de qualité supérieure. Livraison en France.",
-  alternates: {
-    // Relative: resolved against metadataBase (env-driven SITE_URL) so
-    // staging/preview deploys don't emit the production canonical.
-    canonical: "/",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  const t = STRINGS[locale];
+  return {
+    // `absolute` bypasses the "%s | Nuage" template (avoids a doubled suffix)
+    title: { absolute: t.metaTitle },
+    description: t.metaDescription,
+    alternates: {
+      // Relative: resolved against metadataBase (env-driven SITE_URL) so
+      // staging/preview deploys don't emit the production canonical.
+      canonical: "/",
+    },
+  };
+}
 
 /**
  * Homepage: video hero → best sellers → categories → founders' pick → story.
@@ -38,7 +57,8 @@ export const metadata: Metadata = {
  * social proof comes from real Supabase review stats.
  */
 export default async function Home() {
-  const allProducts = await getAllProducts();
+  const locale = await getLocale();
+  const allProducts = localizeProducts(await getAllProducts(), locale);
   const candidates = withRealImages(allProducts);
 
   // One batch query for every candidate's rating stats

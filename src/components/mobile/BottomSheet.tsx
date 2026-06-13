@@ -3,6 +3,16 @@
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    close: "Fermer",
+  },
+  en: {
+    close: "Close",
+  },
+} as const;
 
 interface BottomSheetProps {
   isOpen: boolean;
@@ -32,6 +42,8 @@ export function BottomSheet({
   children,
   footer,
 }: BottomSheetProps) {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const sheetRef = useRef<HTMLDivElement>(null);
   const SWIPE_THRESHOLD = 100;
 
@@ -152,7 +164,7 @@ export function BottomSheet({
               <button
                 onClick={onClose}
                 className="w-8 h-8 flex items-center justify-center text-muted hover:text-primary transition-colors"
-                aria-label="Close"
+                aria-label={t.close}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

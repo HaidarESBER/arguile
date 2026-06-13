@@ -14,7 +14,8 @@ export type OrderStatus =
   | "processing"
   | "shipped"
   | "delivered"
-  | "cancelled";
+  | "cancelled"
+  | "refunded";
 
 /**
  * Order status labels in French
@@ -22,11 +23,12 @@ export type OrderStatus =
 export const orderStatusLabels: Record<OrderStatus, string> = {
   pending_payment: "En attente de paiement",
   pending: "En attente",
-  confirmed: "Confirmee",
-  processing: "En preparation",
-  shipped: "Expediee",
-  delivered: "Livree",
-  cancelled: "Annulee",
+  confirmed: "Confirmée",
+  processing: "En préparation",
+  shipped: "Expédiée",
+  delivered: "Livrée",
+  cancelled: "Annulée",
+  refunded: "Remboursée",
 };
 
 /**

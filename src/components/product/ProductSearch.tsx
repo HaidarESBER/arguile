@@ -2,6 +2,18 @@
 
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import { useDebouncedCallback } from "use-debounce";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    searchPlaceholder: "Rechercher des produits...",
+    clearSearch: "Effacer la recherche",
+  },
+  en: {
+    searchPlaceholder: "Search products...",
+    clearSearch: "Clear search",
+  },
+} as const;
 
 interface ProductSearchProps {
   defaultValue?: string;
@@ -23,6 +35,8 @@ export function ProductSearch({ defaultValue }: ProductSearchProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { replace } = useRouter();
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
 
   const handleSearch = useDebouncedCallback((term: string) => {
     const params = new URLSearchParams(searchParams);
@@ -68,7 +82,7 @@ export function ProductSearch({ defaultValue }: ProductSearchProps) {
       {/* Search Input */}
       <input
         type="search"
-        placeholder="Rechercher des produits..."
+        placeholder={t.searchPlaceholder}
         onChange={(e) => handleSearch(e.target.value)}
         defaultValue={defaultValue}
         className="w-full pl-12 pr-12 py-3 bg-background-card border border-primary/20 rounded-[--radius-button] text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
@@ -79,7 +93,7 @@ export function ProductSearch({ defaultValue }: ProductSearchProps) {
         <button
           onClick={handleClear}
           className="absolute inset-y-0 right-0 pr-4 flex items-center text-muted hover:text-primary transition-colors"
-          aria-label="Effacer la recherche"
+          aria-label={t.clearSearch}
         >
           <svg
             className="w-5 h-5"

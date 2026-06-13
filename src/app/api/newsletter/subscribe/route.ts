@@ -1,17 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import { subscribe } from "@/lib/newsletter";
 import { sendWelcomeEmail } from "@/lib/email";
-import {
-  checkRateLimit,
-  getClientIp,
-  RATE_LIMIT_MESSAGE,
-} from "@/lib/rate-limit";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+
+// Shopper-visible API response messages
+const STRINGS = {
+  fr: {
+    rateLimited: "Trop de requêtes. Veuillez réessayer dans quelques instants.",
+    emailRequired: "Email requis",
+    invalidEmailFormat: "Format d'email invalide",
+    subscribeError: "Erreur lors de l'inscription",
+    internalError: "Erreur interne du serveur",
+  },
+  en: {
+    rateLimited: "Too many requests. Please try again in a few moments.",
+    emailRequired: "Email required",
+    invalidEmailFormat: "Invalid email format",
+    subscribeError: "Error while subscribing",
+    internalError: "Internal server error",
+  },
+} as const;
 
 /**
  * POST /api/newsletter/subscribe
  * Subscribe an email to the newsletter and send a welcome email.
  */
 export async function POST(request: NextRequest) {
+  const v = request.cookies.get("locale")?.value;
+  const locale = v === "en" ? "en" : "fr";
+  const t = STRINGS[locale];
+
   try {
     // Rate limit: 5 subscriptions per minute per IP (abuse / email-spam guard)
     const rate = checkRateLimit(
@@ -20,7 +38,7 @@ export async function POST(request: NextRequest) {
     );
     if (!rate.allowed) {
       return NextResponse.json(
-        { error: RATE_LIMIT_MESSAGE },
+        { error: t.rateLimited },
         {
           status: 429,
           headers: { "Retry-After": String(rate.retryAfterSeconds) },
@@ -34,7 +52,7 @@ export async function POST(request: NextRequest) {
     // Validate email format
     if (!email || typeof email !== "string") {
       return NextResponse.json(
-        { error: "Email requis" },
+        { error: t.emailRequired },
         { status: 400 }
       );
     }
@@ -42,7 +60,7 @@ export async function POST(request: NextRequest) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return NextResponse.json(
-        { error: "Format d'email invalide" },
+        { error: t.invalidEmailFormat },
         { status: 400 }
       );
     }
@@ -51,7 +69,7 @@ export async function POST(request: NextRequest) {
 
     if (!result.success) {
       return NextResponse.json(
-        { error: result.error || "Erreur lors de l'inscription" },
+        { error: result.error || t.subscribeError },
         { status: 500 }
       );
     }
@@ -71,7 +89,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Newsletter subscribe error:", error);
     return NextResponse.json(
-      { error: "Erreur interne du serveur" },
+      { error: t.internalError },
       { status: 500 }
     );
   }

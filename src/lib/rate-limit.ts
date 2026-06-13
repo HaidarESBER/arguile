@@ -112,6 +112,25 @@ export function getClientIp(request: NextRequest | Request): string {
   return "unknown";
 }
 
-/** Standard French 429 payload, shared by all rate-limited routes. */
-export const RATE_LIMIT_MESSAGE =
-  "Trop de requêtes. Veuillez réessayer dans quelques instants.";
+/**
+ * Standard 429 payload, shared by all rate-limited routes, per locale.
+ * The French value must stay identical to the historical message.
+ */
+export const RATE_LIMIT_MESSAGES = {
+  fr: "Trop de requêtes. Veuillez réessayer dans quelques instants.",
+  en: "Too many requests. Please try again in a few moments.",
+} as const;
+
+/**
+ * Standard French 429 payload, shared by all rate-limited routes.
+ * Kept for callers that build their own per-locale string maps.
+ */
+export const RATE_LIMIT_MESSAGE = RATE_LIMIT_MESSAGES.fr;
+
+/**
+ * Localized 429 message for a given locale (default "fr").
+ * @param locale - Locale for the shopper-facing message
+ */
+export function getRateLimitMessage(locale: "fr" | "en" = "fr"): string {
+  return RATE_LIMIT_MESSAGES[locale];
+}

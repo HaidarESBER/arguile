@@ -8,6 +8,28 @@ import { Button } from "@/components/ui";
 import { OrderDetails } from "./OrderDetails";
 import { useCart } from "@/contexts/CartContext";
 import { trackPurchase } from "@/lib/analytics";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    thankYou: "Merci pour votre commande !",
+    paymentVerifying: "Votre paiement est en cours de vérification",
+    confirmationSoon: "Vous recevrez un email de confirmation sous quelques minutes.",
+    orderNumber: (orderNumber: string) => `Commande ${orderNumber}`,
+    emailSentTo: "Un email de confirmation a été envoyé à",
+    continueShopping: "Continuer mes achats",
+    backToHome: "Retour à l'accueil",
+  },
+  en: {
+    thankYou: "Thank you for your order!",
+    paymentVerifying: "Your payment is being verified",
+    confirmationSoon: "You will receive a confirmation email within a few minutes.",
+    orderNumber: (orderNumber: string) => `Order ${orderNumber}`,
+    emailSentTo: "A confirmation email has been sent to",
+    continueShopping: "Continue shopping",
+    backToHome: "Back to home",
+  },
+} as const;
 
 interface OrderConfirmationProps {
   order: Order;
@@ -35,6 +57,8 @@ interface OrderConfirmationProps {
  */
 export function OrderConfirmation({ order, paymentVerified, orderStatus }: OrderConfirmationProps) {
   const { clearCart } = useCart();
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const [purchaseTracked, setPurchaseTracked] = useState(false);
 
   // Clear cart on mount — user has completed payment
@@ -160,7 +184,7 @@ export function OrderConfirmation({ order, paymentVerified, orderStatus }: Order
               </motion.div>
             </motion.div>
             <h1 className="font-heading text-3xl text-primary mb-2">
-              Merci pour votre commande !
+              {t.thankYou}
             </h1>
           </>
         ) : isPendingPayment ? (
@@ -192,10 +216,10 @@ export function OrderConfirmation({ order, paymentVerified, orderStatus }: Order
               </svg>
             </motion.div>
             <h1 className="font-heading text-3xl text-primary mb-2">
-              Votre paiement est en cours de verification
+              {t.paymentVerifying}
             </h1>
             <p className="text-muted mb-2">
-              Vous recevrez un email de confirmation sous quelques minutes.
+              {t.confirmationSoon}
             </p>
           </>
         ) : (
@@ -238,16 +262,16 @@ export function OrderConfirmation({ order, paymentVerified, orderStatus }: Order
               </motion.div>
             </motion.div>
             <h1 className="font-heading text-3xl text-primary mb-2">
-              Merci pour votre commande !
+              {t.thankYou}
             </h1>
           </>
         )}
         <p className="text-lg text-primary font-medium mb-2">
-          Commande {order.orderNumber}
+          {t.orderNumber(order.orderNumber)}
         </p>
         {isConfirmed && (
           <p className="text-muted">
-            Un email de confirmation a ete envoye a{" "}
+            {t.emailSentTo}{" "}
             <span className="font-medium text-primary">
               {order.shippingAddress.email}
             </span>
@@ -262,12 +286,12 @@ export function OrderConfirmation({ order, paymentVerified, orderStatus }: Order
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
         <Link href="/produits">
           <Button variant="primary" size="md">
-            Continuer mes achats
+            {t.continueShopping}
           </Button>
         </Link>
         <Link href="/">
           <Button variant="secondary" size="md">
-            Retour a l&apos;accueil
+            {t.backToHome}
           </Button>
         </Link>
       </div>

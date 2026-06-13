@@ -18,6 +18,17 @@ import { sendOrderConfirmationEmail, sendAbandonedCartEmail } from '@/lib/email'
  * Uses request.text() (not .json()) for signature verification.
  */
 export async function POST(request: NextRequest) {
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+  if (!webhookSecret) {
+    // Misconfiguration, not a bad request: without the secret every event
+    // would 400 as "Invalid signature", which hides the real problem.
+    console.error('Webhook: STRIPE_WEBHOOK_SECRET is not set')
+    return NextResponse.json(
+      { error: 'Webhook not configured' },
+      { status: 500 }
+    )
+  }
+
   const body = await request.text()
   const sig = request.headers.get('stripe-signature')
 
@@ -30,11 +41,7 @@ export async function POST(request: NextRequest) {
 
   let event: Stripe.Event
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    )
+    event = stripe.webhooks.constructEvent(body, sig, webhookSecret)
   } catch (err) {
     console.error('Webhook signature verification failed:', err)
     return NextResponse.json(
@@ -78,14 +85,17 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        const completedStatuses = ['confirmed', 'processing', 'shipped', 'delivered']
+        const completedStatuses = ['confirmed', 'processing', 'shipped', 'delivered', 'refunded']
         if (completedStatuses.includes(existingOrder.status)) {
           console.log('Webhook: Order already processed, skipping:', orderId)
           return NextResponse.json({ received: true })
         }
 
-        // Update order to confirmed with Stripe payment intent ID
-        const { error: updateError } = await supabase
+        // Update order to confirmed with Stripe payment intent ID.
+        // The status filter makes this atomic: of two concurrent deliveries
+        // of the same event, only one flips the row and runs fulfillment
+        // (stock, promotion usage, email) — the other matches zero rows.
+        const { data: updatedRows, error: updateError } = await supabase
           .from('orders')
           .update({
             status: 'confirmed',
@@ -93,6 +103,8 @@ export async function POST(request: NextRequest) {
             updated_at: new Date().toISOString(),
           })
           .eq('id', orderId)
+          .eq('status', existingOrder.status)
+          .select('id')
 
         if (updateError) {
           console.error('Webhook: Failed to update order:', updateError)
@@ -101,6 +113,12 @@ export async function POST(request: NextRequest) {
             { error: 'Failed to update order' },
             { status: 500 }
           )
+        }
+
+        if (!updatedRows || updatedRows.length === 0) {
+          // A concurrent delivery won the race and is handling fulfillment
+          console.log('Webhook: Order updated concurrently, skipping:', orderId)
+          return NextResponse.json({ received: true })
         }
 
         console.log('Webhook: Order confirmed:', orderId)
@@ -198,6 +216,78 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        break
+      }
+
+      case 'charge.refunded': {
+        const charge = event.data.object as Stripe.Charge
+
+        // Partial refunds need a human decision — flag them, don't flip status
+        if (!charge.refunded) {
+          console.warn(
+            'Webhook: Partial refund on charge',
+            charge.id,
+            '— order status left unchanged, handle in admin'
+          )
+          break
+        }
+
+        const paymentIntentId =
+          typeof charge.payment_intent === 'string'
+            ? charge.payment_intent
+            : charge.payment_intent?.id
+
+        if (!paymentIntentId) {
+          console.error('Webhook: Refunded charge has no payment intent:', charge.id)
+          break
+        }
+
+        const supabase = createAdminClient()
+        const { data: refundedRows, error: refundError } = await supabase
+          .from('orders')
+          .update({ status: 'refunded', updated_at: new Date().toISOString() })
+          .eq('stripe_payment_intent_id', paymentIntentId)
+          .select('id, order_number')
+
+        if (refundError) {
+          console.error('Webhook: Failed to mark order refunded:', refundError)
+          return NextResponse.json(
+            { error: 'Failed to mark order refunded' },
+            { status: 500 }
+          )
+        }
+        if (!refundedRows || refundedRows.length === 0) {
+          console.error(
+            'Webhook: No order found for refunded payment intent:',
+            paymentIntentId
+          )
+        } else {
+          console.log(
+            'Webhook: Order marked refunded:',
+            refundedRows.map(r => r.order_number).join(', ')
+          )
+        }
+        break
+      }
+
+      case 'charge.dispute.created': {
+        // Disputes need evidence before a deadline — surface them loudly so
+        // they show up in error monitoring, but leave the order status to a
+        // human (the funds are withheld by Stripe either way).
+        const dispute = event.data.object as Stripe.Dispute
+        const paymentIntentId =
+          typeof dispute.payment_intent === 'string'
+            ? dispute.payment_intent
+            : dispute.payment_intent?.id
+        console.error(
+          'Webhook: DISPUTE OPENED — payment intent:',
+          paymentIntentId,
+          'amount:',
+          dispute.amount,
+          'reason:',
+          dispute.reason,
+          '— respond before the evidence deadline in the Stripe dashboard'
+        )
         break
       }
 

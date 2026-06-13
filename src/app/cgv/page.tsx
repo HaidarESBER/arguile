@@ -22,7 +22,7 @@ export default function CGVPage() {
           {/* Préambule */}
           <section>
             <p>
-              Les présentes Conditions Générales de Vente (CGV) régissent les ventes de produits effectuées sur le site nuage.fr par la société Nuage SARL.
+              Les présentes Conditions Générales de Vente (CGV) régissent les ventes de produits effectuées sur le site chichanuage.com par la société Nuage SARL.
             </p>
             <p>
               Toute commande implique l&apos;acceptation sans réserve des présentes CGV.

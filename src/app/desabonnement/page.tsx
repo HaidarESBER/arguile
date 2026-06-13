@@ -2,14 +2,51 @@ import { Container } from "@/components/ui";
 import Link from "next/link";
 import { UnsubscribeContent } from "./UnsubscribeContent";
 import { SUPPORT_EMAIL } from "@/lib/support";
+import { getLocale } from "@/lib/i18n/server";
 
 import type { Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: "Désabonnement",
-  description: "Gérez votre abonnement à la newsletter Nuage.",
-  robots: { index: false, follow: false },
-};
+const STRINGS = {
+  fr: {
+    metaTitle: "Désabonnement",
+    metaDescription: "Gérez votre abonnement à la newsletter Nuage.",
+    successTitle: "Désabonnement confirmé",
+    successText:
+      "Vous avez été désabonné(e) de notre newsletter avec succès. Vous ne recevrez plus d'emails de notre part.",
+    backHome: "Retour à l'accueil",
+    invalidTitle: "Lien invalide",
+    invalidText: "Le lien de désabonnement est invalide ou a expiré.",
+    invalidHelpBefore:
+      "Vous pouvez vous désabonner manuellement ci-dessous ou nous contacter à",
+    formTitle: "Se désabonner",
+    formText:
+      "Entrez votre adresse email pour vous désabonner de notre newsletter.",
+  },
+  en: {
+    metaTitle: "Unsubscribe",
+    metaDescription: "Manage your Nuage newsletter subscription.",
+    successTitle: "Unsubscribed successfully",
+    successText:
+      "You have been successfully unsubscribed from our newsletter. You will no longer receive emails from us.",
+    backHome: "Back to home",
+    invalidTitle: "Invalid link",
+    invalidText: "This unsubscribe link is invalid or has expired.",
+    invalidHelpBefore:
+      "You can unsubscribe manually below or contact us at",
+    formTitle: "Unsubscribe",
+    formText: "Enter your email address to unsubscribe from our newsletter.",
+  },
+} as const;
+
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  const t = STRINGS[locale];
+  return {
+    title: t.metaTitle,
+    description: t.metaDescription,
+    robots: { index: false, follow: false },
+  };
+}
 
 interface DesabonnementPageProps {
   searchParams: Promise<{ success?: string; error?: string }>;
@@ -18,6 +55,8 @@ interface DesabonnementPageProps {
 export default async function DesabonnementPage({
   searchParams,
 }: DesabonnementPageProps) {
+  const locale = await getLocale();
+  const t = STRINGS[locale];
   const params = await searchParams;
   const success = params.success === "true";
   const error = params.error === "invalid";
@@ -44,17 +83,16 @@ export default async function DesabonnementPage({
                 </svg>
               </div>
               <h1 className="text-2xl font-semibold text-primary mb-4">
-                Désabonnement confirmé
+                {t.successTitle}
               </h1>
               <p className="text-primary/70 mb-8">
-                Vous avez été désabonné(e) de notre newsletter avec succès.
-                Vous ne recevrez plus d&apos;emails de notre part.
+                {t.successText}
               </p>
               <Link
                 href="/"
                 className="inline-block px-6 py-3 bg-primary text-background rounded-lg hover:bg-primary/90 transition-colors"
               >
-                Retour à l&apos;accueil
+                {t.backHome}
               </Link>
             </>
           ) : error ? (
@@ -75,14 +113,13 @@ export default async function DesabonnementPage({
                 </svg>
               </div>
               <h1 className="text-2xl font-semibold text-primary mb-4">
-                Lien invalide
+                {t.invalidTitle}
               </h1>
               <p className="text-primary/70 mb-4">
-                Le lien de désabonnement est invalide ou a expiré.
+                {t.invalidText}
               </p>
               <p className="text-primary/70 mb-8">
-                Vous pouvez vous désabonner manuellement ci-dessous ou
-                nous contacter à{" "}
+                {t.invalidHelpBefore}{" "}
                 <a
                   href={`mailto:${SUPPORT_EMAIL}`}
                   className="text-accent underline"
@@ -96,11 +133,10 @@ export default async function DesabonnementPage({
           ) : (
             <>
               <h1 className="text-2xl font-semibold text-primary mb-4">
-                Se désabonner
+                {t.formTitle}
               </h1>
               <p className="text-primary/70 mb-8">
-                Entrez votre adresse email pour vous désabonner de notre
-                newsletter.
+                {t.formText}
               </p>
               <UnsubscribeContent />
             </>

@@ -3,6 +3,28 @@
 import { useState } from 'react';
 import { Share2, Facebook, Twitter, Linkedin, MessageCircle, Link as LinkIcon, Check } from 'lucide-react';
 import { trackEvent } from '@/lib/analytics';
+import { useLocale } from '@/contexts/LocaleContext';
+
+const STRINGS = {
+  fr: {
+    share: "Partager",
+    shareOnFacebook: "Partager sur Facebook",
+    shareOnTwitter: "Partager sur X (Twitter)",
+    shareOnWhatsApp: "Partager sur WhatsApp",
+    shareOnLinkedIn: "Partager sur LinkedIn",
+    copyLink: "Copier le lien",
+    linkCopied: "Lien copié!",
+  },
+  en: {
+    share: "Share",
+    shareOnFacebook: "Share on Facebook",
+    shareOnTwitter: "Share on X (Twitter)",
+    shareOnWhatsApp: "Share on WhatsApp",
+    shareOnLinkedIn: "Share on LinkedIn",
+    copyLink: "Copy link",
+    linkCopied: "Link copied!",
+  },
+} as const;
 
 /**
  * SocialShareButtons component
@@ -30,13 +52,15 @@ export function SocialShareButtons({
   description = '',
   variant = 'inline'
 }: SocialShareButtonsProps) {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const [copied, setCopied] = useState(false);
 
   // Check if Web Share API is available (primarily mobile)
   const canShare = typeof navigator !== 'undefined' && navigator.share;
 
   const shareText = description || title;
-  const fullUrl = url.startsWith('http') ? url : `https://nuage.fr${url}`;
+  const fullUrl = url.startsWith('http') ? url : `https://chichanuage.com${url}`;
 
   /**
    * Handle native share (Web Share API)
@@ -119,28 +143,28 @@ export function SocialShareButtons({
   const buttons = [
     {
       platform: 'facebook',
-      label: 'Partager sur Facebook',
+      label: t.shareOnFacebook,
       icon: Facebook,
       url: shareUrls.facebook,
       color: 'hover:text-[#1877F2]',
     },
     {
       platform: 'twitter',
-      label: 'Partager sur X (Twitter)',
+      label: t.shareOnTwitter,
       icon: Twitter,
       url: shareUrls.twitter,
       color: 'hover:text-[#1DA1F2]',
     },
     {
       platform: 'whatsapp',
-      label: 'Partager sur WhatsApp',
+      label: t.shareOnWhatsApp,
       icon: MessageCircle,
       url: shareUrls.whatsapp,
       color: 'hover:text-[#25D366]',
     },
     {
       platform: 'linkedin',
-      label: 'Partager sur LinkedIn',
+      label: t.shareOnLinkedIn,
       icon: Linkedin,
       url: shareUrls.linkedin,
       color: 'hover:text-[#0A66C2]',
@@ -160,12 +184,12 @@ export function SocialShareButtons({
         <button
           onClick={handleNativeShare}
           className={`${buttonBaseClasses} text-primary/60 hover:text-accent`}
-          aria-label="Partager"
-          title="Partager"
+          aria-label={t.share}
+          title={t.share}
         >
           <Share2 className="w-5 h-5" />
           <span className="absolute right-full mr-2 px-2 py-1 bg-primary text-background text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
-            Partager
+            {t.share}
           </span>
         </button>
       )}
@@ -193,8 +217,8 @@ export function SocialShareButtons({
       <button
         onClick={handleCopyLink}
         className={`${buttonBaseClasses} ${copied ? 'text-accent border-accent' : 'text-primary/60 hover:text-accent'}`}
-        aria-label="Copier le lien"
-        title={copied ? 'Lien copié!' : 'Copier le lien'}
+        aria-label={t.copyLink}
+        title={copied ? t.linkCopied : t.copyLink}
       >
         {copied ? (
           <Check className="w-5 h-5" />
@@ -202,7 +226,7 @@ export function SocialShareButtons({
           <LinkIcon className="w-5 h-5" />
         )}
         <span className="absolute right-full mr-2 px-2 py-1 bg-primary text-background text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
-          {copied ? 'Lien copié!' : 'Copier le lien'}
+          {copied ? t.linkCopied : t.copyLink}
         </span>
       </button>
     </div>

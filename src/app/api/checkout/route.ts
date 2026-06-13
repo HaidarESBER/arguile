@@ -16,7 +16,7 @@ import {
 import {
   checkRateLimit,
   getClientIp,
-  RATE_LIMIT_MESSAGE,
+  getRateLimitMessage,
 } from '@/lib/rate-limit'
 import { devFixturesActive } from '@/data/dev-fixtures'
 import { createDevOrder } from '@/lib/dev-orders'
@@ -33,7 +33,51 @@ interface CheckoutRequestBody {
 /** Maximum quantity per line item */
 const MAX_QUANTITY_PER_ITEM = 50
 
+// Shopper-visible API response messages
+const STRINGS = {
+  fr: {
+    paymentUnavailable:
+      'Le paiement est indisponible : configuration Stripe/Supabase manquante.',
+    cartEmpty: 'Le panier est vide',
+    shippingAddressRequired: "L'adresse de livraison est requise",
+    invalidQuantity: (productName: string) =>
+      `Quantité invalide pour ${productName}`,
+    countryNotSupported: 'Pays de livraison non pris en charge',
+    productNotFound: (productName: string) =>
+      `Produit introuvable: ${productName}`,
+    productOutOfStock: (name: string) => `Produit en rupture de stock: ${name}`,
+    insufficientStock: (name: string, stockLevel: number) =>
+      `Stock insuffisant pour ${name} (${stockLevel} disponible${stockLevel > 1 ? 's' : ''})`,
+    promoUnavailableDemo: 'Les codes promo sont indisponibles en mode démo.',
+    invalidPromoCode: 'Code promo invalide',
+    couponError: 'Erreur lors de l’application du code promo. Veuillez réessayer.',
+    sessionCreationError: 'Erreur lors de la creation de la session de paiement',
+  },
+  en: {
+    paymentUnavailable:
+      'Payment is unavailable: Stripe/Supabase configuration is missing.',
+    cartEmpty: 'Your cart is empty',
+    shippingAddressRequired: 'The shipping address is required',
+    invalidQuantity: (productName: string) =>
+      `Invalid quantity for ${productName}`,
+    countryNotSupported: 'Shipping country not supported',
+    productNotFound: (productName: string) =>
+      `Product not found: ${productName}`,
+    productOutOfStock: (name: string) => `Product out of stock: ${name}`,
+    insufficientStock: (name: string, stockLevel: number) =>
+      `Insufficient stock for ${name} (${stockLevel} available)`,
+    promoUnavailableDemo: 'Promo codes are unavailable in demo mode.',
+    invalidPromoCode: 'Invalid promo code',
+    couponError: 'An error occurred while applying the promo code. Please try again.',
+    sessionCreationError: 'An error occurred while creating the payment session',
+  },
+} as const
+
 export async function POST(request: NextRequest) {
+  const v = request.cookies.get('locale')?.value
+  const locale = v === 'en' ? 'en' : 'fr'
+  const t = STRINGS[locale]
+
   try {
     // Payments need real credentials: a Stripe key for the session and
     // Supabase for the order row. In dev fixture mode we run a MOCK checkout
@@ -49,8 +93,7 @@ export async function POST(request: NextRequest) {
     if (!paymentsConfigured && !mockCheckout) {
       return NextResponse.json(
         {
-          error:
-            'Le paiement est indisponible : configuration Stripe/Supabase manquante.',
+          error: t.paymentUnavailable,
         },
         { status: 503 }
       )
@@ -60,7 +103,7 @@ export async function POST(request: NextRequest) {
     const rate = checkRateLimit(`checkout:${getClientIp(request)}`, 10, 60_000)
     if (!rate.allowed) {
       return NextResponse.json(
-        { error: RATE_LIMIT_MESSAGE },
+        { error: getRateLimitMessage(locale) },
         {
           status: 429,
           headers: { 'Retry-After': String(rate.retryAfterSeconds) },
@@ -74,14 +117,14 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!items || items.length === 0) {
       return NextResponse.json(
-        { error: 'Le panier est vide' },
+        { error: t.cartEmpty },
         { status: 400 }
       )
     }
 
     if (!shippingAddress || !shippingAddress.email) {
       return NextResponse.json(
-        { error: "L'adresse de livraison est requise" },
+        { error: t.shippingAddressRequired },
         { status: 400 }
       )
     }
@@ -91,7 +134,7 @@ export async function POST(request: NextRequest) {
       const q = item.quantity
       if (!Number.isInteger(q) || q <= 0 || q > MAX_QUANTITY_PER_ITEM) {
         return NextResponse.json(
-          { error: `Quantité invalide pour ${item.productName}` },
+          { error: t.invalidQuantity(item.productName) },
           { status: 400 }
         )
       }
@@ -104,7 +147,7 @@ export async function POST(request: NextRequest) {
     const country = countryEntry ? getCountryByCode(countryEntry.code) : undefined
     if (!country) {
       return NextResponse.json(
-        { error: 'Pays de livraison non pris en charge' },
+        { error: t.countryNotSupported },
         { status: 400 }
       )
     }
@@ -121,13 +164,13 @@ export async function POST(request: NextRequest) {
       const product = productMap.get(item.productId)
       if (!product) {
         return NextResponse.json(
-          { error: `Produit introuvable: ${item.productName}` },
+          { error: t.productNotFound(item.productName) },
           { status: 400 }
         )
       }
       if (!product.inStock) {
         return NextResponse.json(
-          { error: `Produit en rupture de stock: ${product.name}` },
+          { error: t.productOutOfStock(product.name) },
           { status: 400 }
         )
       }
@@ -137,7 +180,7 @@ export async function POST(request: NextRequest) {
       ) {
         return NextResponse.json(
           {
-            error: `Stock insuffisant pour ${product.name} (${product.stockLevel} disponible${product.stockLevel > 1 ? 's' : ''})`,
+            error: t.insufficientStock(product.name, product.stockLevel),
           },
           { status: 400 }
         )
@@ -163,7 +206,7 @@ export async function POST(request: NextRequest) {
     if (discountCode && mockCheckout) {
       // Promotion validation needs Supabase — not available in demo mode
       return NextResponse.json(
-        { error: 'Les codes promo sont indisponibles en mode démo.' },
+        { error: t.promoUnavailableDemo },
         { status: 400 }
       )
     }
@@ -173,7 +216,7 @@ export async function POST(request: NextRequest) {
 
       if (!validation.valid || !validation.promotion) {
         return NextResponse.json(
-          { error: validation.error || 'Code promo invalide' },
+          { error: validation.error || t.invalidPromoCode },
           { status: 400 }
         )
       }
@@ -277,13 +320,26 @@ export async function POST(request: NextRequest) {
           amount_off: serverDiscountAmount,
           currency: 'eur',
           duration: 'once',
+          max_redemptions: 1,
           name: `Remise ${validatedDiscountCode}`,
+          metadata: { orderId: order.id, orderNumber: order.orderNumber },
         })
         sessionOptions.discounts = [{ coupon: coupon.id }]
       } catch (couponError) {
-        console.error('Failed to create Stripe coupon, proceeding without:', couponError)
-        // Fallback: proceed without Stripe-level discount
-        // The order total is already correct
+        // Without the coupon the Stripe line items are full price: the
+        // customer would be charged MORE than the order total they saw.
+        // Abort instead of silently dropping the discount.
+        console.error('Failed to create Stripe coupon, aborting checkout:', couponError)
+        const { updateOrderStatus } = await import('@/lib/orders')
+        try {
+          await updateOrderStatus(order.id, 'cancelled')
+        } catch {
+          console.error('Failed to cancel order after coupon failure:', order.id)
+        }
+        return NextResponse.json(
+          { error: t.couponError },
+          { status: 500 }
+        )
       }
     }
 
@@ -309,7 +365,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Checkout error:', error)
     return NextResponse.json(
-      { error: 'Erreur lors de la creation de la session de paiement' },
+      { error: t.sessionCreationError },
       { status: 500 }
     )
   }

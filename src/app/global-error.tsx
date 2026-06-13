@@ -1,10 +1,26 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+
+const STRINGS = {
+  fr: {
+    title: "Une erreur critique est survenue",
+    body: "Le site a rencontré un problème inattendu. Veuillez réessayer dans quelques instants.",
+    retry: "Réessayer",
+  },
+  en: {
+    title: "A critical error occurred",
+    body: "The site ran into an unexpected problem. Please try again in a few moments.",
+    retry: "Try again",
+  },
+} as const;
 
 /**
  * Global error boundary - replaces the root layout when it crashes.
  * Must render its own <html> and <body>, and cannot rely on globals.css.
+ * LocaleContext is unavailable here (the provider lives in the crashed root
+ * layout), so the locale is read directly from the "locale" cookie on the
+ * client, defaulting to French.
  */
 export default function GlobalError({
   error,
@@ -13,12 +29,18 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const [locale] = useState<"fr" | "en">(() => {
+    if (typeof document === "undefined") return "fr";
+    return /(?:^|;\s*)locale=en(?:;|$)/.test(document.cookie) ? "en" : "fr";
+  });
+  const t = STRINGS[locale];
+
   useEffect(() => {
     console.error("Erreur globale :", error);
   }, [error]);
 
   return (
-    <html lang="fr">
+    <html lang={locale}>
       <body
         style={{
           margin: 0,
@@ -54,7 +76,7 @@ export default function GlobalError({
               color: "#e8dfd5",
             }}
           >
-            Une erreur critique est survenue
+            {t.title}
           </h1>
           <p
             style={{
@@ -64,8 +86,7 @@ export default function GlobalError({
               marginBottom: "2rem",
             }}
           >
-            Le site a rencontré un problème inattendu. Veuillez réessayer dans
-            quelques instants.
+            {t.body}
           </p>
           <button
             onClick={reset}
@@ -80,7 +101,7 @@ export default function GlobalError({
               cursor: "pointer",
             }}
           >
-            Réessayer
+            {t.retry}
           </button>
         </div>
       </body>

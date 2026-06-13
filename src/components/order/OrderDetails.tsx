@@ -1,7 +1,60 @@
+"use client";
+
 import Image from "next/image";
-import { Order, orderStatusLabels } from "@/types/order";
+import { Order, OrderStatus } from "@/types/order";
 import { formatCartTotal } from "@/types/cart";
 import { formatDateLong } from "@/lib/date-utils";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    // fr values match orderStatusLabels in @/types/order
+    statusLabels: {
+      pending_payment: "En attente de paiement",
+      pending: "En attente",
+      confirmed: "Confirmée",
+      processing: "En préparation",
+      shipped: "Expédiée",
+      delivered: "Livrée",
+      cancelled: "Annulée",
+      refunded: "Remboursée",
+    } as Record<OrderStatus, string>,
+    orderNumber: "Numéro de commande",
+    status: "Statut",
+    placedOn: (date: string) => `Commande passée le ${date}`,
+    shippingAddress: "Adresse de livraison",
+    itemsOrdered: "Articles commandés",
+    quantity: (n: number) => `Quantité: ${n}`,
+    unitPrice: "Prix unitaire:",
+    subtotal: "Sous-total",
+    shipping: "Livraison",
+    total: "Total",
+    notes: "Notes",
+  },
+  en: {
+    statusLabels: {
+      pending_payment: "Awaiting payment",
+      pending: "Pending",
+      confirmed: "Confirmed",
+      processing: "Being prepared",
+      shipped: "Shipped",
+      delivered: "Delivered",
+      cancelled: "Cancelled",
+      refunded: "Refunded",
+    } as Record<OrderStatus, string>,
+    orderNumber: "Order number",
+    status: "Status",
+    placedOn: (date: string) => `Order placed on ${date}`,
+    shippingAddress: "Shipping address",
+    itemsOrdered: "Items ordered",
+    quantity: (n: number) => `Quantity: ${n}`,
+    unitPrice: "Unit price:",
+    subtotal: "Subtotal",
+    shipping: "Shipping",
+    total: "Total",
+    notes: "Notes",
+  },
+} as const;
 
 interface OrderDetailsProps {
   order: Order;
@@ -21,21 +74,24 @@ interface OrderDetailsProps {
  * <OrderDetails order={order} />
  */
 export function OrderDetails({ order }: OrderDetailsProps) {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
+
   // Format date in French locale
-  const orderDate = formatDateLong(order.createdAt);
+  const orderDate = formatDateLong(order.createdAt, locale);
 
   return (
     <div className="bg-background-card rounded-[--radius-card] p-6">
       {/* Order header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <div>
-          <p className="text-sm text-muted">Numéro de commande</p>
+          <p className="text-sm text-muted">{t.orderNumber}</p>
           <p className="font-heading text-xl text-primary">{order.orderNumber}</p>
         </div>
         <div className="text-left sm:text-right">
-          <p className="text-sm text-muted">Statut</p>
+          <p className="text-sm text-muted">{t.status}</p>
           <p className="font-medium text-primary">
-            {orderStatusLabels[order.status]}
+            {t.statusLabels[order.status]}
           </p>
         </div>
       </div>
@@ -43,14 +99,14 @@ export function OrderDetails({ order }: OrderDetailsProps) {
       {/* Order date */}
       <div className="border-t border-background-secondary pt-4 mb-6">
         <p className="text-sm text-muted">
-          Commande passée le {orderDate}
+          {t.placedOn(orderDate)}
         </p>
       </div>
 
       {/* Shipping address */}
       <div className="border-t border-background-secondary pt-6 mb-6">
         <h2 className="font-heading text-lg text-primary mb-3">
-          Adresse de livraison
+          {t.shippingAddress}
         </h2>
         <address className="text-muted not-italic leading-relaxed">
           {order.shippingAddress.firstName} {order.shippingAddress.lastName}
@@ -77,7 +133,7 @@ export function OrderDetails({ order }: OrderDetailsProps) {
       {/* Order items */}
       <div className="border-t border-background-secondary pt-6">
         <h2 className="font-heading text-lg text-primary mb-4">
-          Articles commandés
+          {t.itemsOrdered}
         </h2>
         <div className="space-y-4">
           {order.items.map((item) => (
@@ -116,9 +172,9 @@ export function OrderDetails({ order }: OrderDetailsProps) {
               {/* Product details */}
               <div className="flex-1 min-w-0">
                 <h3 className="font-medium text-primary">{item.productName}</h3>
-                <p className="text-sm text-muted">Quantité: {item.quantity}</p>
+                <p className="text-sm text-muted">{t.quantity(item.quantity)}</p>
                 <p className="text-sm text-muted">
-                  Prix unitaire: {formatCartTotal(item.price)}
+                  {t.unitPrice} {formatCartTotal(item.price)}
                 </p>
               </div>
 
@@ -135,15 +191,15 @@ export function OrderDetails({ order }: OrderDetailsProps) {
         {/* Totals */}
         <div className="border-t border-background-secondary mt-6 pt-4 space-y-2">
           <div className="flex justify-between text-muted">
-            <span>Sous-total</span>
+            <span>{t.subtotal}</span>
             <span>{formatCartTotal(order.subtotal)}</span>
           </div>
           <div className="flex justify-between text-muted">
-            <span>Livraison</span>
+            <span>{t.shipping}</span>
             <span>{formatCartTotal(order.shipping)}</span>
           </div>
           <div className="flex justify-between font-medium text-lg text-primary pt-2 border-t border-background-secondary">
-            <span>Total</span>
+            <span>{t.total}</span>
             <span>{formatCartTotal(order.total)}</span>
           </div>
         </div>
@@ -153,7 +209,7 @@ export function OrderDetails({ order }: OrderDetailsProps) {
       {order.notes && (
         <div className="border-t border-background-secondary pt-6 mt-6">
           <h2 className="font-heading text-lg text-primary mb-2">
-            Notes
+            {t.notes}
           </h2>
           <p className="text-muted">{order.notes}</p>
         </div>

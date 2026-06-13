@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Container } from "@/components/ui";
 import { SavedAddress } from "@/types/user";
+import { useLocale } from "@/contexts/LocaleContext";
 
 type ModalMode = "add" | "edit" | "delete" | null;
 
@@ -18,10 +19,131 @@ const COUNTRIES = [
   { code: "IT", name: "Italie" },
 ];
 
+const COUNTRY_NAMES = {
+  fr: {
+    FR: "France",
+    BE: "Belgique",
+    CH: "Suisse",
+    LU: "Luxembourg",
+    DE: "Allemagne",
+    ES: "Espagne",
+    IT: "Italie",
+  },
+  en: {
+    FR: "France",
+    BE: "Belgium",
+    CH: "Switzerland",
+    LU: "Luxembourg",
+    DE: "Germany",
+    ES: "Spain",
+    IT: "Italy",
+  },
+} as const;
+
+// Stored label value -> localized display text. The value persisted to the DB
+// stays French; only the visible text changes.
 const LABEL_OPTIONS = ["Domicile", "Bureau", "Autre"];
+
+const LABEL_NAMES = {
+  fr: { Domicile: "Domicile", Bureau: "Bureau", Autre: "Autre" },
+  en: { Domicile: "Home", Bureau: "Office", Autre: "Other" },
+} as const;
+
+const STRINGS = {
+  fr: {
+    loading: "Chargement...",
+    pageTitle: "Mes Adresses",
+    pageSubtitle: "Gérez vos adresses de livraison enregistrées",
+    addAddress: "Ajouter une adresse",
+    emptyTitle: "Aucune adresse sauvegardée",
+    emptySubtitle: "Ajoutez une adresse pour faciliter vos futures commandes",
+    addFirstAddress: "Ajouter ma première adresse",
+    defaultBadge: "Par défaut",
+    phonePrefix: "Tél",
+    edit: "Modifier",
+    delete: "Supprimer",
+    modalAddTitle: "Ajouter une adresse",
+    modalEditTitle: "Modifier l'adresse",
+    labelField: "Libellé",
+    firstName: "Prénom *",
+    lastName: "Nom *",
+    addressField: "Adresse *",
+    addressPlaceholder: "Numéro et nom de rue",
+    address2Field: "Complément d'adresse",
+    address2Placeholder: "Appartement, étage, etc.",
+    postalCode: "Code postal *",
+    city: "Ville *",
+    country: "Pays *",
+    phone: "Téléphone *",
+    phonePlaceholder: "+33 6 12 34 56 78",
+    setDefault: "Définir comme adresse par défaut",
+    cancel: "Annuler",
+    saving: "Enregistrement...",
+    submitAdd: "Ajouter",
+    submitEdit: "Modifier",
+    deleteTitle: "Supprimer l'adresse",
+    deleteConfirmBefore: "Êtes-vous sûr de vouloir supprimer l'adresse",
+    deleteConfirmAfter: "? Cette action est irréversible.",
+    deleting: "Suppression...",
+    fetchError: "Erreur lors de la récupération des adresses",
+    loadError: "Erreur lors du chargement des adresses",
+    saveError: "Erreur lors de la sauvegarde",
+    editSuccess: "Adresse modifiée avec succès",
+    addSuccess: "Adresse ajoutée avec succès",
+    genericError: "Une erreur est survenue",
+    deleteApiError: "Erreur lors de la suppression",
+    deleteSuccess: "Adresse supprimée avec succès",
+  },
+  en: {
+    loading: "Loading...",
+    pageTitle: "My Addresses",
+    pageSubtitle: "Manage your saved delivery addresses",
+    addAddress: "Add an address",
+    emptyTitle: "No saved addresses",
+    emptySubtitle: "Add an address to make your future orders easier",
+    addFirstAddress: "Add my first address",
+    defaultBadge: "Default",
+    phonePrefix: "Tel",
+    edit: "Edit",
+    delete: "Delete",
+    modalAddTitle: "Add an address",
+    modalEditTitle: "Edit address",
+    labelField: "Label",
+    firstName: "First name *",
+    lastName: "Last name *",
+    addressField: "Address *",
+    addressPlaceholder: "Street number and name",
+    address2Field: "Address line 2",
+    address2Placeholder: "Apartment, floor, etc.",
+    postalCode: "Postal code *",
+    city: "City *",
+    country: "Country *",
+    phone: "Phone *",
+    phonePlaceholder: "+33 6 12 34 56 78",
+    setDefault: "Set as default address",
+    cancel: "Cancel",
+    saving: "Saving...",
+    submitAdd: "Add",
+    submitEdit: "Save",
+    deleteTitle: "Delete address",
+    deleteConfirmBefore: "Are you sure you want to delete the address",
+    deleteConfirmAfter: "? This action cannot be undone.",
+    deleting: "Deleting...",
+    fetchError: "Error retrieving addresses",
+    loadError: "Error loading addresses",
+    saveError: "Error while saving",
+    editSuccess: "Address updated successfully",
+    addSuccess: "Address added successfully",
+    genericError: "An error occurred",
+    deleteApiError: "Error while deleting",
+    deleteSuccess: "Address deleted successfully",
+  },
+} as const;
 
 export default function AddressesPage() {
   const router = useRouter();
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const [addresses, setAddresses] = useState<SavedAddress[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -64,17 +186,17 @@ export default function AddressesPage() {
       }
 
       if (!response.ok) {
-        throw new Error(data.error || "Erreur lors de la récupération des adresses");
+        throw new Error(data.error || t.fetchError);
       }
 
       setAddresses(data.addresses);
     } catch (error) {
       console.error("Error fetching addresses:", error);
-      showMessage("error", "Erreur lors du chargement des adresses");
+      showMessage("error", t.loadError);
     } finally {
       setIsLoading(false);
     }
-  }, [router, showMessage]);
+  }, [router, showMessage, t]);
 
   useEffect(() => {
     fetchAddresses();
@@ -154,22 +276,20 @@ export default function AddressesPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Erreur lors de la sauvegarde");
+        throw new Error(data.error || t.saveError);
       }
 
       setAddresses(data.addresses);
       showMessage(
         "success",
-        modalMode === "edit"
-          ? "Adresse modifiée avec succès"
-          : "Adresse ajoutée avec succès"
+        modalMode === "edit" ? t.editSuccess : t.addSuccess
       );
       closeModal();
     } catch (error) {
       console.error("Error saving address:", error);
       showMessage(
         "error",
-        error instanceof Error ? error.message : "Une erreur est survenue"
+        error instanceof Error ? error.message : t.genericError
       );
     } finally {
       setIsSaving(false);
@@ -192,17 +312,17 @@ export default function AddressesPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Erreur lors de la suppression");
+        throw new Error(data.error || t.deleteApiError);
       }
 
       setAddresses(data.addresses);
-      showMessage("success", "Adresse supprimée avec succès");
+      showMessage("success", t.deleteSuccess);
       closeModal();
     } catch (error) {
       console.error("Error deleting address:", error);
       showMessage(
         "error",
-        error instanceof Error ? error.message : "Une erreur est survenue"
+        error instanceof Error ? error.message : t.genericError
       );
     } finally {
       setIsSaving(false);
@@ -215,7 +335,7 @@ export default function AddressesPage() {
         <Container size="md">
           <div className="text-center py-12">
             <div className="animate-spin w-8 h-8 border-4 border-accent border-t-transparent rounded-full mx-auto"></div>
-            <p className="text-muted mt-4">Chargement...</p>
+            <p className="text-muted mt-4">{t.loading}</p>
           </div>
         </Container>
       </main>
@@ -229,17 +349,17 @@ export default function AddressesPage() {
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl lg:text-4xl font-bold text-primary mb-2">
-              Mes Adresses
+              {t.pageTitle}
             </h1>
             <p className="text-muted">
-              Gérez vos adresses de livraison enregistrées
+              {t.pageSubtitle}
             </p>
           </div>
           <button
             onClick={openAddModal}
             className="bg-accent text-background font-medium px-6 py-3 rounded-lg hover:bg-accent/90 transition-colors"
           >
-            Ajouter une adresse
+            {t.addAddress}
           </button>
         </div>
 
@@ -288,16 +408,16 @@ export default function AddressesPage() {
               </svg>
             </div>
             <h3 className="text-lg font-semibold text-primary mb-2">
-              Aucune adresse sauvegardée
+              {t.emptyTitle}
             </h3>
             <p className="text-muted mb-6">
-              Ajoutez une adresse pour faciliter vos futures commandes
+              {t.emptySubtitle}
             </p>
             <button
               onClick={openAddModal}
               className="inline-block bg-accent text-background font-medium px-6 py-3 rounded-lg hover:bg-accent/90 transition-colors"
             >
-              Ajouter ma première adresse
+              {t.addFirstAddress}
             </button>
           </motion.div>
         ) : (
@@ -316,11 +436,13 @@ export default function AddressesPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="font-semibold text-primary">
-                          {address.label}
+                          {LABEL_NAMES[locale][
+                            address.label as keyof (typeof LABEL_NAMES)["fr"]
+                          ] ?? address.label}
                         </h3>
                         {address.isDefault && (
                           <span className="px-2 py-1 bg-accent/10 text-accent text-xs font-medium rounded-full">
-                            Par défaut
+                            {t.defaultBadge}
                           </span>
                         )}
                       </div>
@@ -336,7 +458,7 @@ export default function AddressesPage() {
                       </p>
                       <p className="text-muted text-sm">{address.country}</p>
                       <p className="text-muted text-sm mt-1">
-                        Tél: {address.phone}
+                        {t.phonePrefix}: {address.phone}
                       </p>
                     </div>
 
@@ -345,13 +467,13 @@ export default function AddressesPage() {
                         onClick={() => openEditModal(address)}
                         className="text-sm text-accent hover:underline"
                       >
-                        Modifier
+                        {t.edit}
                       </button>
                       <button
                         onClick={() => openDeleteModal(address)}
                         className="text-sm text-red-600 hover:underline"
                       >
-                        Supprimer
+                        {t.delete}
                       </button>
                     </div>
                   </div>
@@ -380,14 +502,14 @@ export default function AddressesPage() {
               >
                 <h2 className="text-2xl font-bold text-primary mb-6">
                   {modalMode === "add"
-                    ? "Ajouter une adresse"
-                    : "Modifier l'adresse"}
+                    ? t.modalAddTitle
+                    : t.modalEditTitle}
                 </h2>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-primary mb-2">
-                      Libellé
+                      {t.labelField}
                     </label>
                     <select
                       value={formData.label}
@@ -398,7 +520,9 @@ export default function AddressesPage() {
                     >
                       {LABEL_OPTIONS.map((label) => (
                         <option key={label} value={label}>
-                          {label}
+                          {LABEL_NAMES[locale][
+                            label as keyof (typeof LABEL_NAMES)["fr"]
+                          ]}
                         </option>
                       ))}
                     </select>
@@ -407,7 +531,7 @@ export default function AddressesPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-primary mb-2">
-                        Prénom *
+                        {t.firstName}
                       </label>
                       <input
                         type="text"
@@ -422,7 +546,7 @@ export default function AddressesPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-primary mb-2">
-                        Nom *
+                        {t.lastName}
                       </label>
                       <input
                         type="text"
@@ -438,7 +562,7 @@ export default function AddressesPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-primary mb-2">
-                      Adresse *
+                      {t.addressField}
                     </label>
                     <input
                       type="text"
@@ -447,14 +571,14 @@ export default function AddressesPage() {
                         setFormData({ ...formData, address: e.target.value })
                       }
                       className="w-full px-4 py-3 rounded-lg border border-border bg-background text-primary focus:outline-none focus:ring-2 focus:ring-accent"
-                      placeholder="Numéro et nom de rue"
+                      placeholder={t.addressPlaceholder}
                       required
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-primary mb-2">
-                      Complément d&apos;adresse
+                      {t.address2Field}
                     </label>
                     <input
                       type="text"
@@ -463,14 +587,14 @@ export default function AddressesPage() {
                         setFormData({ ...formData, address2: e.target.value })
                       }
                       className="w-full px-4 py-3 rounded-lg border border-border bg-background text-primary focus:outline-none focus:ring-2 focus:ring-accent"
-                      placeholder="Appartement, étage, etc."
+                      placeholder={t.address2Placeholder}
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-primary mb-2">
-                        Code postal *
+                        {t.postalCode}
                       </label>
                       <input
                         type="text"
@@ -485,7 +609,7 @@ export default function AddressesPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-primary mb-2">
-                        Ville *
+                        {t.city}
                       </label>
                       <input
                         type="text"
@@ -501,7 +625,7 @@ export default function AddressesPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-primary mb-2">
-                      Pays *
+                      {t.country}
                     </label>
                     <select
                       value={formData.country}
@@ -513,7 +637,9 @@ export default function AddressesPage() {
                     >
                       {COUNTRIES.map((country) => (
                         <option key={country.code} value={country.code}>
-                          {country.name}
+                          {COUNTRY_NAMES[locale][
+                            country.code as keyof (typeof COUNTRY_NAMES)["fr"]
+                          ]}
                         </option>
                       ))}
                     </select>
@@ -521,7 +647,7 @@ export default function AddressesPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-primary mb-2">
-                      Téléphone *
+                      {t.phone}
                     </label>
                     <input
                       type="tel"
@@ -530,7 +656,7 @@ export default function AddressesPage() {
                         setFormData({ ...formData, phone: e.target.value })
                       }
                       className="w-full px-4 py-3 rounded-lg border border-border bg-background text-primary focus:outline-none focus:ring-2 focus:ring-accent"
-                      placeholder="+33 6 12 34 56 78"
+                      placeholder={t.phonePlaceholder}
                       required
                     />
                   </div>
@@ -549,7 +675,7 @@ export default function AddressesPage() {
                       htmlFor="isDefault"
                       className="text-sm text-primary cursor-pointer"
                     >
-                      Définir comme adresse par défaut
+                      {t.setDefault}
                     </label>
                   </div>
 
@@ -559,7 +685,7 @@ export default function AddressesPage() {
                       onClick={closeModal}
                       className="flex-1 px-6 py-3 rounded-lg border border-border text-primary hover:bg-background-secondary transition-colors"
                     >
-                      Annuler
+                      {t.cancel}
                     </button>
                     <button
                       type="submit"
@@ -567,10 +693,10 @@ export default function AddressesPage() {
                       className="flex-1 bg-accent text-background font-medium px-6 py-3 rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isSaving
-                        ? "Enregistrement..."
+                        ? t.saving
                         : modalMode === "add"
-                        ? "Ajouter"
-                        : "Modifier"}
+                        ? t.submitAdd
+                        : t.submitEdit}
                     </button>
                   </div>
                 </form>
@@ -597,14 +723,16 @@ export default function AddressesPage() {
                 onClick={(e) => e.stopPropagation()}
               >
                 <h2 className="text-2xl font-bold text-primary mb-4">
-                  Supprimer l&apos;adresse
+                  {t.deleteTitle}
                 </h2>
                 <p className="text-muted mb-6">
-                  Êtes-vous sûr de vouloir supprimer l&apos;adresse{" "}
+                  {t.deleteConfirmBefore}{" "}
                   <span className="font-medium text-primary">
-                    {selectedAddress.label}
+                    {LABEL_NAMES[locale][
+                      selectedAddress.label as keyof (typeof LABEL_NAMES)["fr"]
+                    ] ?? selectedAddress.label}
                   </span>{" "}
-                  ? Cette action est irréversible.
+                  {t.deleteConfirmAfter}
                 </p>
 
                 <div className="flex gap-3">
@@ -612,14 +740,14 @@ export default function AddressesPage() {
                     onClick={closeModal}
                     className="flex-1 px-6 py-3 rounded-lg border border-border text-primary hover:bg-background-secondary transition-colors"
                   >
-                    Annuler
+                    {t.cancel}
                   </button>
                   <button
                     onClick={handleDelete}
                     disabled={isSaving}
                     className="flex-1 bg-red-600 text-white font-medium px-6 py-3 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isSaving ? "Suppression..." : "Supprimer"}
+                    {isSaving ? t.deleting : t.delete}
                   </button>
                 </div>
               </motion.div>

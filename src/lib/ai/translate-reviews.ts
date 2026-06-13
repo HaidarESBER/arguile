@@ -57,7 +57,7 @@ export async function translateReview(text: string, language?: string | null): P
     headers: {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://nuage.fr', // Optional: for rankings
+      'HTTP-Referer': 'https://chichanuage.com', // Optional: for rankings
     },
     body: JSON.stringify({
       model: AI_MODEL,

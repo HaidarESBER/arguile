@@ -7,13 +7,32 @@ import {
   RATE_LIMIT_MESSAGE,
 } from "@/lib/rate-limit";
 
+const STRINGS = {
+  fr: {
+    rateLimited: RATE_LIMIT_MESSAGE,
+    missingFields: "Email et mot de passe requis",
+    invalidCredentials: "Email ou mot de passe incorrect",
+    loginError: "Erreur lors de la connexion",
+  },
+  en: {
+    rateLimited: "Too many requests. Please try again in a few moments.",
+    missingFields: "Email and password are required",
+    invalidCredentials: "Incorrect email or password",
+    loginError: "Error while signing in",
+  },
+} as const;
+
 export async function POST(request: NextRequest) {
+  const v = request.cookies.get("locale")?.value;
+  const locale = v === "en" ? "en" : "fr";
+  const t = STRINGS[locale];
+
   try {
     // Rate limit: 5 attempts per minute per IP (brute-force mitigation)
     const rate = checkRateLimit(`auth-login:${getClientIp(request)}`, 5);
     if (!rate.allowed) {
       return NextResponse.json(
-        { error: RATE_LIMIT_MESSAGE },
+        { error: t.rateLimited },
         {
           status: 429,
           headers: { "Retry-After": String(rate.retryAfterSeconds) },
@@ -27,7 +46,7 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!email || !password) {
       return NextResponse.json(
-        { error: "Email et mot de passe requis" },
+        { error: t.missingFields },
         { status: 400 }
       );
     }
@@ -44,14 +63,14 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       return NextResponse.json(
-        { error: "Email ou mot de passe incorrect" },
+        { error: t.invalidCredentials },
         { status: 401 }
       );
     }
 
     if (!data.user) {
       return NextResponse.json(
-        { error: "Email ou mot de passe incorrect" },
+        { error: t.invalidCredentials },
         { status: 401 }
       );
     }
@@ -76,7 +95,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Login error:", error);
     return NextResponse.json(
-      { error: "Erreur lors de la connexion" },
+      { error: t.loginError },
       { status: 401 }
     );
   }

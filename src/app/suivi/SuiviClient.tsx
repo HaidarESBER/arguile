@@ -5,6 +5,48 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Container, Button } from "@/components/ui";
 import { SUPPORT_EMAIL } from "@/lib/support";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    enterOrderNumber: "Veuillez entrer votre numéro de commande",
+    enterEmail: "Veuillez entrer votre adresse email",
+    orderNotFound: "Commande introuvable",
+    genericError: "Une erreur est survenue. Veuillez réessayer.",
+    title: "Suivre ma commande",
+    subtitle:
+      "Entrez votre numéro de commande et votre email pour suivre votre colis",
+    orderNumberLabel: "Numéro de commande",
+    orderNumberHint: "Vous le trouverez dans votre email de confirmation",
+    emailLabel: "Adresse email",
+    emailPlaceholder: "votre@email.com",
+    searching: "Recherche en cours...",
+    trackOrder: "Suivre ma commande",
+    needHelp: "Besoin d'aide ?",
+    helpText:
+      "Si vous ne trouvez pas votre numéro de commande, vérifiez l'email de confirmation que vous avez reçu après votre achat.",
+    contactUsAt: "Pour toute question, contactez-nous à",
+  },
+  en: {
+    enterOrderNumber: "Please enter your order number",
+    enterEmail: "Please enter your email address",
+    orderNotFound: "Order not found",
+    genericError: "An error occurred. Please try again.",
+    title: "Track my order",
+    subtitle:
+      "Enter your order number and email to track your parcel",
+    orderNumberLabel: "Order number",
+    orderNumberHint: "You will find it in your confirmation email",
+    emailLabel: "Email address",
+    emailPlaceholder: "your@email.com",
+    searching: "Searching...",
+    trackOrder: "Track my order",
+    needHelp: "Need help?",
+    helpText:
+      "If you cannot find your order number, check the confirmation email you received after your purchase.",
+    contactUsAt: "For any questions, contact us at",
+  },
+} as const;
 
 /**
  * Order Tracking Lookup Page
@@ -17,6 +59,8 @@ import { SUPPORT_EMAIL } from "@/lib/support";
  */
 export default function OrderTrackingPage() {
   const router = useRouter();
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const [orderNumber, setOrderNumber] = useState("");
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -30,13 +74,13 @@ export default function OrderTrackingPage() {
     try {
       // Validate inputs
       if (!orderNumber.trim()) {
-        setError("Veuillez entrer votre numéro de commande");
+        setError(t.enterOrderNumber);
         setIsLoading(false);
         return;
       }
 
       if (!email.trim()) {
-        setError("Veuillez entrer votre adresse email");
+        setError(t.enterEmail);
         setIsLoading(false);
         return;
       }
@@ -51,16 +95,19 @@ export default function OrderTrackingPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Commande introuvable");
+        setError(data.error || t.orderNotFound);
         setIsLoading(false);
         return;
       }
 
-      // Redirect to order details page
-      router.push(`/suivi/${orderNumber}`);
+      // Redirect to order details page — the email is re-verified
+      // server-side there (the page is gated against order-number guessing)
+      router.push(
+        `/suivi/${encodeURIComponent(orderNumber.trim())}?email=${encodeURIComponent(email.trim())}`
+      );
     } catch (error) {
       console.error("Error tracking order:", error);
-      setError("Une erreur est survenue. Veuillez réessayer.");
+      setError(t.genericError);
       setIsLoading(false);
     }
   };
@@ -93,10 +140,10 @@ export default function OrderTrackingPage() {
             </svg>
           </motion.div>
           <h1 className="font-heading text-3xl text-text mb-2">
-            Suivre ma commande
+            {t.title}
           </h1>
           <p className="text-muted">
-            Entrez votre numéro de commande et votre email pour suivre votre colis
+            {t.subtitle}
           </p>
         </div>
 
@@ -114,7 +161,7 @@ export default function OrderTrackingPage() {
               htmlFor="orderNumber"
               className="block text-sm font-medium text-text mb-2"
             >
-              Numéro de commande
+              {t.orderNumberLabel}
             </label>
             <input
               type="text"
@@ -126,7 +173,7 @@ export default function OrderTrackingPage() {
               disabled={isLoading}
             />
             <p className="text-xs text-muted mt-1">
-              Vous le trouverez dans votre email de confirmation
+              {t.orderNumberHint}
             </p>
           </div>
 
@@ -136,14 +183,14 @@ export default function OrderTrackingPage() {
               htmlFor="email"
               className="block text-sm font-medium text-text mb-2"
             >
-              Adresse email
+              {t.emailLabel}
             </label>
             <input
               type="email"
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="votre@email.com"
+              placeholder={t.emailPlaceholder}
               className="w-full px-4 py-3 rounded-[--radius-button] border border-background-secondary bg-background text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
               disabled={isLoading}
             />
@@ -189,10 +236,10 @@ export default function OrderTrackingPage() {
                 >
                   <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                 </motion.svg>
-                Recherche en cours...
+                {t.searching}
               </span>
             ) : (
-              "Suivre ma commande"
+              t.trackOrder
             )}
           </Button>
         </motion.form>
@@ -200,14 +247,13 @@ export default function OrderTrackingPage() {
         {/* Help Section */}
         <div className="mt-8 p-4 bg-background-secondary rounded-[--radius-button]">
           <h3 className="text-sm font-medium text-primary mb-2">
-            Besoin d&apos;aide ?
+            {t.needHelp}
           </h3>
           <p className="text-xs text-muted mb-2">
-            Si vous ne trouvez pas votre numéro de commande, vérifiez l&apos;email
-            de confirmation que vous avez reçu après votre achat.
+            {t.helpText}
           </p>
           <p className="text-xs text-muted">
-            Pour toute question, contactez-nous à{" "}
+            {t.contactUsAt}{" "}
             <a
               href={`mailto:${SUPPORT_EMAIL}`}
               className="text-accent hover:underline"

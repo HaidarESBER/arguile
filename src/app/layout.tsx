@@ -3,6 +3,7 @@ import { fontVariables } from "@/lib/fonts";
 import { CartProvider } from "@/contexts/CartContext";
 import { WishlistProvider } from "@/contexts/WishlistContext";
 import { ComparisonProvider } from "@/contexts/ComparisonContext";
+import { LocaleProvider } from "@/contexts/LocaleContext";
 import { Header, Footer } from "@/components/layout";
 import { FloatingCartButton } from "@/components/mobile/FloatingCartButton";
 import { InstallPrompt } from "@/components/mobile/InstallPrompt";
@@ -15,6 +16,7 @@ import { CookieConsent } from "@/components/legal/CookieConsent";
 import { AgeVerification } from "@/components/legal/AgeVerification";
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
 import { generateOrganizationSchema, SITE_URL } from "@/lib/seo";
+import { getLocale } from "@/lib/i18n/server";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -24,47 +26,69 @@ export const viewport: Viewport = {
   themeColor: "#2b251f",
 };
 
-export const metadata: Metadata = {
-  title: {
-    default: "Nuage | L'art de la détente",
-    template: "%s | Nuage",
-  },
-  description:
-    "Boutique en ligne d'accessoires chicha haut de gamme. Chichas, bols, tuyaux, charbon et accessoires de qualité pour les connaisseurs.",
-  keywords: ["chicha", "hookah", "narguilé", "accessoires", "premium", "France"],
-  metadataBase: new URL(SITE_URL),
-  openGraph: {
+const SITE_META = {
+  fr: {
     title: "Nuage | L'art de la détente",
     description:
       "Boutique en ligne d'accessoires chicha haut de gamme. Chichas, bols, tuyaux, charbon et accessoires de qualité pour les connaisseurs.",
-    type: "website",
-    locale: "fr_FR",
-    siteName: "Nuage",
-    images: [
-      {
-        url: "/logo.png",
-        alt: "Nuage — L'art de la détente",
-      },
-    ],
+    keywords: ["chicha", "hookah", "narguilé", "accessoires", "premium", "France"],
+    ogLocale: "fr_FR",
+    ogImageAlt: "Nuage — L'art de la détente",
   },
-  twitter: {
-    card: "summary_large_image",
-    title: "Nuage | L'art de la détente",
+  en: {
+    title: "Nuage | The art of relaxation",
     description:
-      "Boutique en ligne d'accessoires chicha haut de gamme. Chichas, bols, tuyaux, charbon et accessoires de qualité pour les connaisseurs.",
+      "Premium online hookah shop. High-quality hookahs, bowls, hoses, charcoal and accessories for connoisseurs.",
+    keywords: ["hookah", "shisha", "narghile", "accessories", "premium", "France"],
+    ogLocale: "en_US",
+    ogImageAlt: "Nuage — The art of relaxation",
   },
-  robots: "index, follow",
-};
+} as const;
 
-export default function RootLayout({
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  const meta = SITE_META[locale];
+
+  return {
+    title: {
+      default: meta.title,
+      template: "%s | Nuage",
+    },
+    description: meta.description,
+    keywords: [...meta.keywords],
+    metadataBase: new URL(SITE_URL),
+    openGraph: {
+      title: meta.title,
+      description: meta.description,
+      type: "website",
+      locale: meta.ogLocale,
+      siteName: "Nuage",
+      images: [
+        {
+          url: "/logo.png",
+          alt: meta.ogImageAlt,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: meta.title,
+      description: meta.description,
+    },
+    robots: "index, follow",
+  };
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
   const organizationSchema = generateOrganizationSchema();
 
   return (
-    <html lang="fr">
+    <html lang={locale}>
       <head>
         {/* Material Icons */}
         <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
@@ -81,28 +105,30 @@ export default function RootLayout({
         <AnalyticsScripts />
         <ServiceWorkerRegister />
 
-        {/* Legal Components - MANDATORY for compliance */}
-        <AgeVerification />
-        <CookieConsent />
+        <LocaleProvider locale={locale}>
+          {/* Legal Components - MANDATORY for compliance */}
+          <AgeVerification />
+          <CookieConsent />
 
-        <CartProvider>
-          <WishlistProvider>
-            <ComparisonProvider>
-              {/* Health warning sticky banner */}
-              <HealthWarning />
+          <CartProvider>
+            <WishlistProvider>
+              <ComparisonProvider>
+                {/* Health warning sticky banner */}
+                <HealthWarning />
 
-              <Header />
-              <div className="flex flex-col min-h-screen">
-                <main className="flex-1">{children}</main>
-                <Footer />
-              </div>
-              <FloatingCartButton />
-              <InstallPrompt />
-              <ExitIntentModal />
-              <SupportChat />
-            </ComparisonProvider>
-          </WishlistProvider>
-        </CartProvider>
+                <Header />
+                <div className="flex flex-col min-h-screen">
+                  <main className="flex-1">{children}</main>
+                  <Footer />
+                </div>
+                <FloatingCartButton />
+                <InstallPrompt />
+                <ExitIntentModal />
+                <SupportChat />
+              </ComparisonProvider>
+            </WishlistProvider>
+          </CartProvider>
+        </LocaleProvider>
       </body>
     </html>
   );

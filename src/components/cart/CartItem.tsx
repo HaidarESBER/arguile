@@ -5,6 +5,20 @@ import Image from "next/image";
 import { CartItem as CartItemType } from "@/types/cart";
 import { formatPrice } from "@/types/product";
 import { useCart } from "@/contexts/CartContext";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    decreaseQuantity: "Diminuer la quantité",
+    increaseQuantity: "Augmenter la quantité",
+    removeFromCart: "Supprimer du panier",
+  },
+  en: {
+    decreaseQuantity: "Decrease quantity",
+    increaseQuantity: "Increase quantity",
+    removeFromCart: "Remove from cart",
+  },
+} as const;
 
 interface CartItemProps {
   item: CartItemType;
@@ -23,6 +37,8 @@ interface CartItemProps {
  */
 export function CartItem({ item }: CartItemProps) {
   const { updateQuantity, removeItem } = useCart();
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const { product, quantity } = item;
 
   const handleDecrease = () => {
@@ -75,7 +91,7 @@ export function CartItem({ item }: CartItemProps) {
             onClick={handleDecrease}
             whileTap={{ scale: 0.95 }}
             className="w-11 h-11 md:w-8 md:h-8 flex items-center justify-center border border-white/20 rounded-full text-white hover:bg-primary hover:text-white hover:border-primary transition-colors"
-            aria-label="Diminuer la quantité"
+            aria-label={t.decreaseQuantity}
           >
             <span className="text-lg leading-none">−</span>
           </motion.button>
@@ -97,7 +113,7 @@ export function CartItem({ item }: CartItemProps) {
             onClick={handleIncrease}
             whileTap={{ scale: 0.95 }}
             className="w-11 h-11 md:w-8 md:h-8 flex items-center justify-center border border-white/20 rounded-full text-white hover:bg-primary hover:text-white hover:border-primary transition-colors"
-            aria-label="Augmenter la quantité"
+            aria-label={t.increaseQuantity}
           >
             <span className="text-lg leading-none">+</span>
           </motion.button>
@@ -114,7 +130,7 @@ export function CartItem({ item }: CartItemProps) {
         <button
           onClick={handleRemove}
           className="text-text-muted hover:text-error transition-colors sm:ml-2"
-          aria-label="Supprimer du panier"
+          aria-label={t.removeFromCart}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

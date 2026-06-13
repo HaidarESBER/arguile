@@ -6,11 +6,28 @@ import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import { motion } from "framer-motion";
 import { Product, formatPrice } from "@/types/product";
 import { useCart } from "@/contexts/CartContext";
+import { useLocale } from "@/contexts/LocaleContext";
 import { StarRatingDisplay } from "@/components/product/StarRating";
-import { StockIndicator } from "@/components/product/StockIndicator";
 import { QuickViewModal } from "./QuickViewModal";
-import { isTrending } from "@/lib/social-proof";
-import { TrendingBadge } from "./TrendingBadge";
+
+const STRINGS = {
+  fr: {
+    quickView: "Aperçu rapide",
+    outOfStock: "Rupture de stock",
+    almostGone: "Bientôt épuisé",
+    added: "Ajouté",
+    addToCart: "Ajouter au panier",
+    addedToCart: "Produit ajouté au panier",
+  },
+  en: {
+    quickView: "Quick view",
+    outOfStock: "Out of stock",
+    almostGone: "Almost gone",
+    added: "Added",
+    addToCart: "Add to cart",
+    addedToCart: "Product added to cart",
+  },
+} as const;
 
 interface ProductCardProps {
   product: Product;
@@ -116,6 +133,8 @@ function ProductCardContent({
   onQuickView,
   onCloseQuickView,
 }: ProductCardContentProps) {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const hasDiscount = product.compareAtPrice && product.compareAtPrice > product.price;
 
   return (
@@ -123,8 +142,12 @@ function ProductCardContent({
       {/* Image container - Premium display */}
       <Link href={`/produits/${product.slug}`} className="block relative">
         <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-background-secondary to-background p-1.5">
-          {/* Trending badge */}
-          {isTrending(product) && <TrendingBadge />}
+          {/* Sale badge — only on real discounts. No fake "trending" emoji. */}
+          {hasDiscount && product.inStock && (
+            <span className="absolute top-2 left-2 z-10 bg-primary text-background text-xs font-bold px-2 py-0.5 rounded">
+              −{Math.round(((product.compareAtPrice! - product.price) / product.compareAtPrice!) * 100)}%
+            </span>
+          )}
 
           <motion.div
             whileHover={{ scale: 1.08 }}
@@ -158,22 +181,15 @@ function ProductCardContent({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
             </svg>
-            Aperçu rapide
+            {t.quickView}
           </motion.button>
 
           {/* Out of stock overlay */}
           {!product.inStock && (
             <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center">
               <span className="text-white font-medium text-xs uppercase tracking-wider">
-                Rupture de stock
+                {t.outOfStock}
               </span>
-            </div>
-          )}
-
-          {/* Sale badge - elegant design */}
-          {hasDiscount && product.inStock && (
-            <div className="absolute top-2 left-2 bg-primary text-background text-xs font-bold px-1.5 py-0.5 rounded-full">
-              -{Math.round(((product.compareAtPrice! - product.price) / product.compareAtPrice!) * 100)}%
             </div>
           )}
         </div>
@@ -213,15 +229,15 @@ function ProductCardContent({
           )}
         </div>
 
-        {/* Stock indicator */}
-        <div className="mb-1">
-          <StockIndicator
-            inStock={product.inStock}
-            stockLevel={product.stockLevel}
-            size="sm"
-            showDot={true}
-          />
-        </div>
+        {/* Low-stock note only — no "En stock" badge on every card, no
+            pulsing fake-urgency. Quiet, and only when genuinely low. */}
+        {product.inStock &&
+          typeof product.stockLevel === "number" &&
+          product.stockLevel <= 5 && (
+            <p className="text-xs text-text-muted mb-1">
+              {t.almostGone}
+            </p>
+          )}
 
         {/* CTA Button - Single, prominent */}
         <motion.button
@@ -240,10 +256,10 @@ function ProductCardContent({
           {justAdded ? (
             <>
               <span className="material-icons text-xs">check</span>
-              <span>Ajouté</span>
+              <span>{t.added}</span>
             </>
           ) : (
-            product.inStock ? "Ajouter au panier" : "Rupture de stock"
+            product.inStock ? t.addToCart : t.outOfStock
           )}
         </motion.button>
       </div>
@@ -264,7 +280,7 @@ function ProductCardContent({
           className="hidden md:flex fixed bottom-4 right-4 glass-card backdrop-blur-md text-white px-4 py-3 rounded-xl shadow-lg z-50 max-w-sm items-center gap-2"
         >
           <span className="material-icons text-primary text-lg">check_circle</span>
-          <span>Produit ajouté au panier</span>
+          <span>{t.addedToCart}</span>
         </motion.div>
       )}
     </>

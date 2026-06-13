@@ -1,6 +1,32 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    title: "Paiement",
+    weAccept: "Nous acceptons:",
+    securePayment: "Paiement 100% sécurisé",
+    sslConnection: "Connexion SSL sécurisée",
+    neverStored: "Vos informations bancaires ne sont jamais stockées",
+    threeDSecure: "Protection 3D Secure pour les paiements par carte",
+    stripeRedirect:
+      "Vous serez redirigé vers notre partenaire de paiement sécurisé Stripe pour finaliser votre achat.",
+    securedBy: "Paiement sécurisé par",
+  },
+  en: {
+    title: "Payment",
+    weAccept: "We accept:",
+    securePayment: "100% secure payment",
+    sslConnection: "Secure SSL connection",
+    neverStored: "Your card details are never stored",
+    threeDSecure: "3D Secure protection for card payments",
+    stripeRedirect:
+      "You will be redirected to our secure payment partner Stripe to complete your purchase.",
+    securedBy: "Secure payment by",
+  },
+} as const;
 
 /**
  * PaymentMethods component for displaying payment options and secure messaging
@@ -12,6 +38,9 @@ import { motion } from "framer-motion";
  * - 3D Secure branding
  */
 export function PaymentMethods() {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -19,11 +48,11 @@ export function PaymentMethods() {
       transition={{ duration: 0.4, delay: 0.3 }}
       className="space-y-4"
     >
-      <h2 className="font-heading text-xl text-primary">Paiement</h2>
+      <h2 className="font-heading text-xl text-text">{t.title}</h2>
 
       {/* Payment method icons */}
       <div className="flex items-center gap-3 flex-wrap">
-        <span className="text-sm text-muted mr-2">Nous acceptons:</span>
+        <span className="text-sm text-muted mr-2">{t.weAccept}</span>
         {/* Visa */}
         <div className="h-8 px-3 py-1 rounded border border-background-secondary bg-background flex items-center justify-center grayscale hover:grayscale-0 transition-all">
           <svg
@@ -98,18 +127,13 @@ export function PaymentMethods() {
           </svg>
         </div>
 
-        {/* PayPal (future) */}
-        <div className="h-8 px-3 py-1 rounded border border-background-secondary bg-background flex items-center justify-center opacity-50">
-          <span className="text-xs font-medium text-[#003087]">PayPal</span>
-        </div>
-
-        {/* Apple Pay (future) */}
-        <div className="h-8 px-3 py-1 rounded border border-background-secondary bg-background flex items-center justify-center opacity-50">
+        {/* Apple Pay / Google Pay — offered automatically by Stripe Checkout
+            on compatible devices */}
+        <div className="h-8 px-3 py-1 rounded border border-background-secondary bg-background flex items-center justify-center grayscale hover:grayscale-0 transition-all">
           <span className="text-xs font-medium">Apple Pay</span>
         </div>
 
-        {/* Google Pay (future) */}
-        <div className="h-8 px-3 py-1 rounded border border-background-secondary bg-background flex items-center justify-center opacity-50">
+        <div className="h-8 px-3 py-1 rounded border border-background-secondary bg-background flex items-center justify-center grayscale hover:grayscale-0 transition-all">
           <span className="text-xs font-medium">Google Pay</span>
         </div>
       </div>
@@ -132,8 +156,8 @@ export function PaymentMethods() {
             <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
           </svg>
-          <span className="font-medium text-primary">
-            Paiement 100% securise
+          <span className="font-medium text-text">
+            {t.securePayment}
           </span>
         </div>
 
@@ -152,7 +176,7 @@ export function PaymentMethods() {
             >
               <polyline points="20 6 9 17 4 12" />
             </svg>
-            <span>Connexion SSL securisee</span>
+            <span>{t.sslConnection}</span>
           </div>
           <div className="flex items-center gap-2">
             <svg
@@ -168,7 +192,7 @@ export function PaymentMethods() {
             >
               <polyline points="20 6 9 17 4 12" />
             </svg>
-            <span>Vos informations bancaires ne sont jamais stockees</span>
+            <span>{t.neverStored}</span>
           </div>
           <div className="flex items-center gap-2">
             <svg
@@ -184,7 +208,7 @@ export function PaymentMethods() {
             >
               <polyline points="20 6 9 17 4 12" />
             </svg>
-            <span>Protection 3D Secure pour les paiements par carte</span>
+            <span>{t.threeDSecure}</span>
           </div>
         </div>
       </div>
@@ -192,14 +216,13 @@ export function PaymentMethods() {
       {/* Stripe redirect message */}
       <div className="p-4 bg-background-card border border-background-secondary rounded-[--radius-button]">
         <p className="text-sm text-muted">
-          Vous serez redirige vers notre partenaire de paiement securise Stripe
-          pour finaliser votre achat.
+          {t.stripeRedirect}
         </p>
       </div>
 
       {/* Powered by Stripe */}
       <div className="flex items-center justify-center gap-2 text-xs text-muted pt-2">
-        <span>Paiement securise par</span>
+        <span>{t.securedBy}</span>
         <svg
           width="40"
           height="16"

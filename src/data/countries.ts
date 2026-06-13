@@ -12,50 +12,53 @@ export type CountryRegion = "france" | "eu-schengen" | "eu-non-schengen" | "non-
 
 export interface Country {
   code: string;
+  /** French display name (default locale). */
   name: string;
+  /** English display name. */
+  nameEn: string;
   region: CountryRegion;
   flag: string; // Emoji flag
 }
 
 export const EUROPEAN_COUNTRIES: Country[] = [
   // France
-  { code: "FR", name: "France", region: "france" as const, flag: "🇫🇷" },
+  { code: "FR", name: "France", nameEn: "France", region: "france" as const, flag: "🇫🇷" },
 
   // EU Schengen
-  { code: "DE", name: "Allemagne", region: "eu-schengen" as const, flag: "🇩🇪" },
-  { code: "AT", name: "Autriche", region: "eu-schengen" as const, flag: "🇦🇹" },
-  { code: "BE", name: "Belgique", region: "eu-schengen" as const, flag: "🇧🇪" },
-  { code: "DK", name: "Danemark", region: "eu-schengen" as const, flag: "🇩🇰" },
-  { code: "ES", name: "Espagne", region: "eu-schengen" as const, flag: "🇪🇸" },
-  { code: "EE", name: "Estonie", region: "eu-schengen" as const, flag: "🇪🇪" },
-  { code: "FI", name: "Finlande", region: "eu-schengen" as const, flag: "🇫🇮" },
-  { code: "GR", name: "Grece", region: "eu-schengen" as const, flag: "🇬🇷" },
-  { code: "HU", name: "Hongrie", region: "eu-schengen" as const, flag: "🇭🇺" },
-  { code: "IT", name: "Italie", region: "eu-schengen" as const, flag: "🇮🇹" },
-  { code: "LV", name: "Lettonie", region: "eu-schengen" as const, flag: "🇱🇻" },
-  { code: "LT", name: "Lituanie", region: "eu-schengen" as const, flag: "🇱🇹" },
-  { code: "LU", name: "Luxembourg", region: "eu-schengen" as const, flag: "🇱🇺" },
-  { code: "MT", name: "Malte", region: "eu-schengen" as const, flag: "🇲🇹" },
-  { code: "NL", name: "Pays-Bas", region: "eu-schengen" as const, flag: "🇳🇱" },
-  { code: "PL", name: "Pologne", region: "eu-schengen" as const, flag: "🇵🇱" },
-  { code: "PT", name: "Portugal", region: "eu-schengen" as const, flag: "🇵🇹" },
-  { code: "CZ", name: "Republique tcheque", region: "eu-schengen" as const, flag: "🇨🇿" },
-  { code: "SK", name: "Slovaquie", region: "eu-schengen" as const, flag: "🇸🇰" },
-  { code: "SI", name: "Slovenie", region: "eu-schengen" as const, flag: "🇸🇮" },
-  { code: "SE", name: "Suede", region: "eu-schengen" as const, flag: "🇸🇪" },
+  { code: "DE", name: "Allemagne", nameEn: "Germany", region: "eu-schengen" as const, flag: "🇩🇪" },
+  { code: "AT", name: "Autriche", nameEn: "Austria", region: "eu-schengen" as const, flag: "🇦🇹" },
+  { code: "BE", name: "Belgique", nameEn: "Belgium", region: "eu-schengen" as const, flag: "🇧🇪" },
+  { code: "DK", name: "Danemark", nameEn: "Denmark", region: "eu-schengen" as const, flag: "🇩🇰" },
+  { code: "ES", name: "Espagne", nameEn: "Spain", region: "eu-schengen" as const, flag: "🇪🇸" },
+  { code: "EE", name: "Estonie", nameEn: "Estonia", region: "eu-schengen" as const, flag: "🇪🇪" },
+  { code: "FI", name: "Finlande", nameEn: "Finland", region: "eu-schengen" as const, flag: "🇫🇮" },
+  { code: "GR", name: "Grece", nameEn: "Greece", region: "eu-schengen" as const, flag: "🇬🇷" },
+  { code: "HU", name: "Hongrie", nameEn: "Hungary", region: "eu-schengen" as const, flag: "🇭🇺" },
+  { code: "IT", name: "Italie", nameEn: "Italy", region: "eu-schengen" as const, flag: "🇮🇹" },
+  { code: "LV", name: "Lettonie", nameEn: "Latvia", region: "eu-schengen" as const, flag: "🇱🇻" },
+  { code: "LT", name: "Lituanie", nameEn: "Lithuania", region: "eu-schengen" as const, flag: "🇱🇹" },
+  { code: "LU", name: "Luxembourg", nameEn: "Luxembourg", region: "eu-schengen" as const, flag: "🇱🇺" },
+  { code: "MT", name: "Malte", nameEn: "Malta", region: "eu-schengen" as const, flag: "🇲🇹" },
+  { code: "NL", name: "Pays-Bas", nameEn: "Netherlands", region: "eu-schengen" as const, flag: "🇳🇱" },
+  { code: "PL", name: "Pologne", nameEn: "Poland", region: "eu-schengen" as const, flag: "🇵🇱" },
+  { code: "PT", name: "Portugal", nameEn: "Portugal", region: "eu-schengen" as const, flag: "🇵🇹" },
+  { code: "CZ", name: "Republique tcheque", nameEn: "Czech Republic", region: "eu-schengen" as const, flag: "🇨🇿" },
+  { code: "SK", name: "Slovaquie", nameEn: "Slovakia", region: "eu-schengen" as const, flag: "🇸🇰" },
+  { code: "SI", name: "Slovenie", nameEn: "Slovenia", region: "eu-schengen" as const, flag: "🇸🇮" },
+  { code: "SE", name: "Suede", nameEn: "Sweden", region: "eu-schengen" as const, flag: "🇸🇪" },
 
   // EU non-Schengen
-  { code: "BG", name: "Bulgarie", region: "eu-non-schengen" as const, flag: "🇧🇬" },
-  { code: "HR", name: "Croatie", region: "eu-non-schengen" as const, flag: "🇭🇷" },
-  { code: "CY", name: "Chypre", region: "eu-non-schengen" as const, flag: "🇨🇾" },
-  { code: "IE", name: "Irlande", region: "eu-non-schengen" as const, flag: "🇮🇪" },
-  { code: "RO", name: "Roumanie", region: "eu-non-schengen" as const, flag: "🇷🇴" },
+  { code: "BG", name: "Bulgarie", nameEn: "Bulgaria", region: "eu-non-schengen" as const, flag: "🇧🇬" },
+  { code: "HR", name: "Croatie", nameEn: "Croatia", region: "eu-non-schengen" as const, flag: "🇭🇷" },
+  { code: "CY", name: "Chypre", nameEn: "Cyprus", region: "eu-non-schengen" as const, flag: "🇨🇾" },
+  { code: "IE", name: "Irlande", nameEn: "Ireland", region: "eu-non-schengen" as const, flag: "🇮🇪" },
+  { code: "RO", name: "Roumanie", nameEn: "Romania", region: "eu-non-schengen" as const, flag: "🇷🇴" },
 
   // Non-EU Europe
-  { code: "CH", name: "Suisse", region: "non-eu" as const, flag: "🇨🇭" },
-  { code: "GB", name: "Royaume-Uni", region: "non-eu" as const, flag: "🇬🇧" },
-  { code: "NO", name: "Norvege", region: "non-eu" as const, flag: "🇳🇴" },
-  { code: "IS", name: "Islande", region: "non-eu" as const, flag: "🇮🇸" },
+  { code: "CH", name: "Suisse", nameEn: "Switzerland", region: "non-eu" as const, flag: "🇨🇭" },
+  { code: "GB", name: "Royaume-Uni", nameEn: "United Kingdom", region: "non-eu" as const, flag: "🇬🇧" },
+  { code: "NO", name: "Norvege", nameEn: "Norway", region: "non-eu" as const, flag: "🇳🇴" },
+  { code: "IS", name: "Islande", nameEn: "Iceland", region: "non-eu" as const, flag: "🇮🇸" },
 ].sort((a, b) => a.name.localeCompare(b.name, "fr"));
 
 /**
@@ -63,6 +66,18 @@ export const EUROPEAN_COUNTRIES: Country[] = [
  */
 export function getCountryByCode(code: string): Country | undefined {
   return EUROPEAN_COUNTRIES.find((c) => c.code === code);
+}
+
+/**
+ * Get the localized display name for a country.
+ * @param country - Country record
+ * @param locale - Locale for the display name (defaults to "fr")
+ */
+export function getCountryName(
+  country: Country,
+  locale: "fr" | "en" = "fr"
+): string {
+  return locale === "en" ? country.nameEn : country.name;
 }
 
 /**

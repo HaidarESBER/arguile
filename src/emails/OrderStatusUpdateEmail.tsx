@@ -132,7 +132,10 @@ export function OrderStatusUpdateEmail({
               Consultez le détail de votre commande et son suivi :
             </Text>
             <Section style={ctaSection}>
-              <Link href={`${SITE_URL}/suivi/${orderNumber}`} style={ctaButton}>
+              <Link
+                href={`${SITE_URL}/suivi/${orderNumber}?email=${encodeURIComponent(order.shippingAddress.email)}`}
+                style={ctaButton}
+              >
                 Voir ma commande
               </Link>
             </Section>

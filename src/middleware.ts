@@ -1,12 +1,74 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
+import { categorySlugs } from "@/lib/categories";
+import type { ProductCategory } from "@/types/product";
+import {
+  LOCALE_COOKIE,
+  LOCALE_COOKIE_MAX_AGE,
+  isLocale,
+  type Locale,
+} from "@/lib/i18n/config";
+
+/**
+ * Pick a language for first-time visitors: France gets French, the rest of
+ * the world gets English. Uses the CDN geo header (Vercel/Cloudflare); when
+ * absent (local dev, self-hosted) falls back to the Accept-Language header.
+ */
+function detectLocale(request: NextRequest): Locale {
+  const country =
+    request.headers.get("x-vercel-ip-country") ||
+    request.headers.get("cf-ipcountry");
+
+  if (country) {
+    return country.toUpperCase() === "FR" ? "fr" : "en";
+  }
+
+  const acceptLanguage = request.headers.get("accept-language") || "";
+  return /(^|,)\s*fr\b/i.test(acceptLanguage) ? "fr" : "en";
+}
 
 export async function middleware(request: NextRequest) {
+  // Resolve the locale before routing: injecting it into the request cookies
+  // (forwarded via NextResponse.next({ request })) lets the very first page
+  // render already use the geo-detected language, not just the next one.
+  let detectedLocale: Locale | null = null;
+  if (!isLocale(request.cookies.get(LOCALE_COOKIE)?.value)) {
+    detectedLocale = detectLocale(request);
+    request.cookies.set(LOCALE_COOKIE, detectedLocale);
+  }
+
+  const response = await handleRequest(request);
+
+  if (detectedLocale) {
+    response.cookies.set(LOCALE_COOKIE, detectedLocale, {
+      path: "/",
+      maxAge: LOCALE_COOKIE_MAX_AGE,
+      sameSite: "lax",
+    });
+  }
+
+  return response;
+}
+
+async function handleRequest(request: NextRequest): Promise<NextResponse> {
   const pathname = request.nextUrl.pathname;
+
+  // Legacy category filter URLs (/produits?categorie=chicha) moved to
+  // dedicated pages (/produits/chichas) — 308 here so crawlers get a real
+  // HTTP redirect instead of the streamed meta-refresh the page fallback emits.
+  if (pathname === "/produits") {
+    const legacyCategory = request.nextUrl.searchParams.get("categorie");
+    if (legacyCategory && legacyCategory in categorySlugs) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/produits/${categorySlugs[legacyCategory as ProductCategory]}`;
+      url.searchParams.delete("categorie");
+      return NextResponse.redirect(url, 308);
+    }
+  }
 
   // Stripe webhooks must bypass auth — called directly by Stripe without cookies
   if (pathname.startsWith("/api/webhooks/")) {
-    return NextResponse.next();
+    return NextResponse.next({ request });
   }
 
   const isProtectedPage = pathname.startsWith("/admin");
@@ -45,7 +107,7 @@ export async function middleware(request: NextRequest) {
       );
     }
 
-    return NextResponse.next();
+    return NextResponse.next({ request });
   }
 
   // Refresh Supabase auth session for requests that carry auth cookies

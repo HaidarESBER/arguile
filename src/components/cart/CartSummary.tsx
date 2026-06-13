@@ -5,6 +5,34 @@ import Link from "next/link";
 import { Button } from "@/components/ui";
 import { useCart } from "@/contexts/CartContext";
 import { calculateSubtotal, calculateTotalItems, formatCartTotal } from "@/types/cart";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    emptyTitle: "Votre panier est vide",
+    emptySubtitle: "Découvrez nos produits et trouvez votre bonheur",
+    viewProducts: "Voir nos produits",
+    orderSummary: "Resume de la commande",
+    itemsLine: (n: number) => `Articles (${n})`,
+    shipping: "Livraison",
+    calculatedAtCheckout: "Calcule a la commande",
+    subtotal: "Sous-total",
+    checkout: "Passer la commande",
+    continueShopping: "Continuer mes achats",
+  },
+  en: {
+    emptyTitle: "Your cart is empty",
+    emptySubtitle: "Discover our products and find what you love",
+    viewProducts: "View our products",
+    orderSummary: "Order summary",
+    itemsLine: (n: number) => `Items (${n})`,
+    shipping: "Shipping",
+    calculatedAtCheckout: "Calculated at checkout",
+    subtotal: "Subtotal",
+    checkout: "Place order",
+    continueShopping: "Continue shopping",
+  },
+} as const;
 
 /**
  * CartSummary component displays cart totals and action buttons
@@ -18,6 +46,8 @@ import { calculateSubtotal, calculateTotalItems, formatCartTotal } from "@/types
  */
 export function CartSummary() {
   const { items } = useCart();
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const totalItems = calculateTotalItems(items);
   const subtotal = calculateSubtotal(items);
 
@@ -56,14 +86,14 @@ export function CartSummary() {
             </svg>
           </motion.div>
           <h2 className="font-heading text-xl text-white mb-2">
-            Votre panier est vide
+            {t.emptyTitle}
           </h2>
           <p className="text-text-muted mb-6">
-            Découvrez nos produits et trouvez votre bonheur
+            {t.emptySubtitle}
           </p>
           <Link href="/produits">
             <Button variant="primary" size="md">
-              Voir nos produits
+              {t.viewProducts}
             </Button>
           </Link>
         </motion.div>
@@ -77,22 +107,22 @@ export function CartSummary() {
           className="glass-card rounded-xl p-6 sticky top-24"
         >
           <h2 className="font-heading text-xl text-white mb-6">
-            Resume de la commande
+            {t.orderSummary}
           </h2>
 
           {/* Summary details */}
           <div className="space-y-3 mb-6">
             <div className="flex justify-between text-text-muted">
-              <span>Articles ({totalItems})</span>
+              <span>{t.itemsLine(totalItems)}</span>
               <span>{formatCartTotal(subtotal)}</span>
             </div>
             <div className="flex justify-between text-text-muted">
-              <span>Livraison</span>
-              <span>Calcule a la commande</span>
+              <span>{t.shipping}</span>
+              <span>{t.calculatedAtCheckout}</span>
             </div>
             <hr className="border-white/10" />
             <div className="flex justify-between font-medium text-white text-lg">
-              <span>Sous-total</span>
+              <span>{t.subtotal}</span>
               <span>{formatCartTotal(subtotal)}</span>
             </div>
           </div>
@@ -101,14 +131,14 @@ export function CartSummary() {
           <div className="space-y-3">
             <Link href="/commande" className="block">
               <Button variant="primary" size="md" className="w-full">
-                Passer la commande
+                {t.checkout}
               </Button>
             </Link>
             <Link
               href="/produits"
               className="block text-center text-white hover:text-primary transition-colors text-sm"
             >
-              Continuer mes achats
+              {t.continueShopping}
             </Link>
           </div>
         </motion.div>

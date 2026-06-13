@@ -8,10 +8,44 @@ import { ProductCard } from "@/components/product/ProductCard";
 import { RecommendationsSection } from "@/components/product/RecommendationsSection";
 import { Product } from "@/types/product";
 import { useWishlist } from "@/contexts/WishlistContext";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    loadError: "Impossible de charger vos produits favoris",
+    loading: "Chargement...",
+    retry: "Réessayer",
+    title: "Ma Liste de Souhaits",
+    countSubtitle: (count: number) =>
+      `${count} ${count === 1 ? "produit" : "produits"} dans votre liste`,
+    emptySubtitle: "Votre liste de souhaits est vide",
+    emptyTitle: "Votre liste est vide",
+    emptyHint: "Parcourez notre catalogue et ajoutez vos produits favoris",
+    discoverProducts: "Découvrir nos produits",
+    recoTitle: "Basé sur vos favoris",
+    recoSubtitle: "Produits similaires que vous pourriez aimer",
+  },
+  en: {
+    loadError: "Unable to load your favorite products",
+    loading: "Loading...",
+    retry: "Try again",
+    title: "My Wishlist",
+    countSubtitle: (count: number) =>
+      `${count} ${count === 1 ? "product" : "products"} in your list`,
+    emptySubtitle: "Your wishlist is empty",
+    emptyTitle: "Your list is empty",
+    emptyHint: "Browse our catalog and add your favorite products",
+    discoverProducts: "Discover our products",
+    recoTitle: "Based on your favorites",
+    recoSubtitle: "Similar products you might like",
+  },
+} as const;
 
 export default function WishlistPage() {
   const router = useRouter();
   const { wishlistItems: wishlistIds } = useWishlist();
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,21 +71,21 @@ export default function WishlistPage() {
         setError(null);
       } catch (err) {
         console.error('Error fetching wishlist products:', err);
-        setError('Impossible de charger vos produits favoris');
+        setError(t.loadError);
       } finally {
         setIsLoading(false);
       }
     }
 
     fetchProducts();
-  }, [wishlistIds]);
+  }, [wishlistIds, t]);
 
   if (isLoading) {
     return (
       <Container size="lg" className="py-16">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-accent-blush border-t-transparent"></div>
-          <p className="mt-4 text-muted">Chargement...</p>
+          <p className="mt-4 text-muted">{t.loading}</p>
         </div>
       </Container>
     );
@@ -66,7 +100,7 @@ export default function WishlistPage() {
             onClick={() => router.refresh()}
             className="mt-4 px-6 py-2 bg-accent-blush text-white rounded-full hover:bg-accent-blush/90 transition-colors"
           >
-            Réessayer
+            {t.retry}
           </button>
         </div>
       </Container>
@@ -83,12 +117,12 @@ export default function WishlistPage() {
         className="mb-12 text-center"
       >
         <h1 className="font-heading text-4xl md:text-5xl text-primary mb-4">
-          Ma Liste de Souhaits
+          {t.title}
         </h1>
         <p className="text-muted text-lg">
           {products.length > 0
-            ? `${products.length} ${products.length === 1 ? "produit" : "produits"} dans votre liste`
-            : "Votre liste de souhaits est vide"}
+            ? t.countSubtitle(products.length)
+            : t.emptySubtitle}
         </p>
       </motion.div>
 
@@ -114,16 +148,16 @@ export default function WishlistPage() {
             />
           </svg>
           <h2 className="font-heading text-2xl text-primary mb-4">
-            Votre liste est vide
+            {t.emptyTitle}
           </h2>
           <p className="text-muted mb-8">
-            Parcourez notre catalogue et ajoutez vos produits favoris
+            {t.emptyHint}
           </p>
           <button
             onClick={() => router.push("/produits")}
             className="px-8 py-3 bg-accent-blush text-white rounded-full hover:bg-accent-blush/90 transition-all hover:scale-105 font-medium"
           >
-            Découvrir nos produits
+            {t.discoverProducts}
           </button>
         </motion.div>
       )}
@@ -163,8 +197,8 @@ export default function WishlistPage() {
 
           {/* Recommendations based on wishlist */}
           <RecommendationsSection
-            title="Basé sur vos favoris"
-            subtitle="Produits similaires que vous pourriez aimer"
+            title={t.recoTitle}
+            subtitle={t.recoSubtitle}
             limit={6}
           />
         </>

@@ -1,93 +1,70 @@
 import { Metadata } from "next";
+import { permanentRedirect } from "next/navigation";
 import { ProduitsClientEnhanced } from "./ProduitsClientEnhanced";
 import { getAllProducts, toProductListItem } from "@/lib/products";
 import { getBatchProductRatingStats } from "@/lib/reviews";
-import {
-  ProductCategory,
-} from "@/types/product";
+import { getDefaultOgImage } from "@/lib/seo";
+import { categoryPath, categorySlugs } from "@/lib/categories";
+import { ProductCategory } from "@/types/product";
+import { getLocale } from "@/lib/i18n/server";
+import { localizeProducts } from "@/lib/product-i18n";
 
 interface ProduitsPageProps {
   searchParams: Promise<{ categorie?: string; q?: string; page?: string }>;
 }
 
-const categoryMeta: Record<string, { title: string; description: string }> = {
-  chicha: {
-    title: "Chichas Premium",
+const STRINGS = {
+  fr: {
+    title: "Produits",
     description:
-      "Découvrez notre sélection de chichas haut de gamme. Designs élégants et matériaux de qualité pour une expérience unique.",
+      "Découvrez notre collection de chichas premium, bols, tuyaux, charbon et accessoires. Qualité supérieure pour une expérience unique.",
+    ogLocale: "fr_FR",
   },
-  bol: {
-    title: "Bols à Chicha",
+  en: {
+    title: "Products",
     description:
-      "Bols en céramique, verre et silicone pour chicha. Qualité artisanale pour une chauffe optimale du tabac.",
+      "Discover our collection of premium hookahs, bowls, hoses, charcoal and accessories. Superior quality for a unique experience.",
+    ogLocale: "en_US",
   },
-  tuyau: {
-    title: "Tuyaux de Chicha",
-    description:
-      "Tuyaux en silicone et cuir pour chicha. Matériaux premium pour un tirage parfait et une expérience confortable.",
-  },
-  charbon: {
-    title: "Charbon pour Chicha",
-    description:
-      "Charbon naturel et auto-allumant pour chicha. Combustion longue et régulière pour des sessions prolongées.",
-  },
-  accessoire: {
-    title: "Accessoires Chicha",
-    description:
-      "Accessoires essentiels pour chicha : pinces, embouts, filtres, brosses et plus. Tout pour entretenir votre chicha.",
-  },
-};
+} as const;
 
-export async function generateMetadata({
-  searchParams,
-}: ProduitsPageProps): Promise<Metadata> {
-  const params = await searchParams;
-  const category = params.categorie;
-
-  const meta =
-    category && categoryMeta[category] ? categoryMeta[category] : null;
-  const title = meta ? meta.title : "Produits";
-  const description =
-    meta?.description ||
-    "Découvrez notre collection de chichas premium, bols, tuyaux, charbon et accessoires. Qualité supérieure pour une expérience unique.";
-
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  const t = STRINGS[locale];
   return {
-    title,
-    description,
-    // Parameterized variants (?categorie=, ?q=, ?page=) canonicalize to the
-    // main catalog page to avoid duplicate-content indexing.
+    title: t.title,
+    description: t.description,
+    // Parameterized variants (?q=, ?page=) canonicalize to the main catalog
+    // page to avoid duplicate-content indexing. Categories live on their own
+    // canonical URLs (/produits/chichas, …).
     alternates: { canonical: "/produits" },
     openGraph: {
-      title,
-      description,
+      title: t.title,
+      description: t.description,
       type: "website",
-      locale: "fr_FR",
+      locale: t.ogLocale,
+      images: [getDefaultOgImage(locale)],
     },
   };
 }
 
 export default async function ProduitsPage({ searchParams }: ProduitsPageProps) {
   const params = await searchParams;
-  const categoryParam = params.categorie as ProductCategory | undefined;
   const searchQuery = params.q || '';
   const currentPage = parseInt(params.page || '1', 10);
+  const locale = await getLocale();
 
-  // Validate category parameter
-  const validCategories: ProductCategory[] = [
-    "chicha",
-    "bol",
-    "tuyau",
-    "charbon",
-    "accessoire",
-  ];
-  const isValidCategory =
-    categoryParam && validCategories.includes(categoryParam);
-  const activeCategory = isValidCategory ? categoryParam : null;
+  // Legacy category filter URLs (?categorie=chicha) moved to dedicated
+  // pages (/produits/chichas) — 308 so search engines transfer indexing.
+  const categoryParam = params.categorie as ProductCategory | undefined;
+  if (categoryParam && categoryParam in categorySlugs) {
+    permanentRedirect(categoryPath(categoryParam));
+  }
 
   // Load products from database and trim to the fields the grid needs
   // (no full descriptions, single image) before crossing the RSC boundary
   const allProducts = await getAllProducts();
-  const products = allProducts.map(toProductListItem);
+  const products = localizeProducts(allProducts.map(toProductListItem), locale);
 
   // Fetch ratings for all products in a single batch query (optimized)
   const productIds = products.map(p => p.id);
@@ -96,7 +73,7 @@ export default async function ProduitsPage({ searchParams }: ProduitsPageProps) 
   return (
     <ProduitsClientEnhanced
       products={products}
-      activeCategory={activeCategory}
+      activeCategory={null}
       searchQuery={searchQuery}
       ratingsMap={ratingsMap}
       initialPage={currentPage}

@@ -2,7 +2,27 @@
 
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Product, ProductCategory, categoryLabels, formatPrice } from "@/types/product";
+import { Product, ProductCategory, getCategoryLabel, formatPrice } from "@/types/product";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    filters: "Filtres",
+    resetFilters: "Réinitialiser les filtres",
+    category: "Catégorie",
+    price: "Prix",
+    availability: "Disponibilité",
+    inStockOnly: "En stock uniquement",
+  },
+  en: {
+    filters: "Filters",
+    resetFilters: "Reset filters",
+    category: "Category",
+    price: "Price",
+    availability: "Availability",
+    inStockOnly: "In stock only",
+  },
+} as const;
 
 interface FilterState {
   categories: ProductCategory[];
@@ -186,6 +206,8 @@ export function ProductFilters({
   onToggleInStockOnly,
   onResetFilters,
 }: ProductFiltersProps) {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const [expandedSections, setExpandedSections] = useState({
     category: true,
     price: true,
@@ -224,7 +246,7 @@ export function ProductFilters({
     >
       {/* Header */}
       <div className="mb-6">
-        <h2 className="font-heading text-2xl text-white mb-2">Filtres</h2>
+        <h2 className="font-heading text-2xl text-white mb-2">{t.filters}</h2>
         {hasActiveFilters && (
           <motion.button
             initial={{ opacity: 0, y: -10 }}
@@ -232,14 +254,14 @@ export function ProductFilters({
             onClick={onResetFilters}
             className="text-sm text-primary hover:underline"
           >
-            Réinitialiser les filtres
+            {t.resetFilters}
           </motion.button>
         )}
       </div>
 
       {/* Category Filter */}
       <FilterSection
-        title="Catégorie"
+        title={t.category}
         isExpanded={expandedSections.category}
         onToggle={() => toggleSection("category")}
       >
@@ -281,7 +303,7 @@ export function ProductFilters({
                   </div>
                 </div>
                 <span className="text-sm text-white group-hover:text-primary transition-colors flex-1">
-                  {categoryLabels[category]}
+                  {getCategoryLabel(category, locale)}
                 </span>
                 <span className="text-xs text-text-muted">({categoryCounts[category]})</span>
               </label>
@@ -292,7 +314,7 @@ export function ProductFilters({
 
       {/* Price Filter */}
       <FilterSection
-        title="Prix"
+        title={t.price}
         isExpanded={expandedSections.price}
         onToggle={() => toggleSection("price")}
       >
@@ -356,7 +378,7 @@ export function ProductFilters({
 
       {/* Stock Filter */}
       <FilterSection
-        title="Disponibilité"
+        title={t.availability}
         isExpanded={expandedSections.stock}
         onToggle={() => toggleSection("stock")}
       >
@@ -391,7 +413,7 @@ export function ProductFilters({
             </div>
           </div>
           <span className="text-sm text-white group-hover:text-primary transition-colors">
-            En stock uniquement
+            {t.inStockOnly}
           </span>
         </label>
       </FilterSection>

@@ -2,6 +2,52 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    selectRating: "Veuillez sélectionner une note",
+    commentTooShort: "Votre avis doit contenir au moins 10 caractères",
+    submitFailed: "Échec de la soumission de l'avis",
+    genericError: "Une erreur s'est produite. Veuillez réessayer.",
+    thanks: "Merci !",
+    submittedNote: "Votre avis a été soumis et sera publié après vérification.",
+    leaveReview: "Laisser un avis",
+    rating: "Note",
+    name: "Nom",
+    namePlaceholder: "Votre nom",
+    email: "Email",
+    emailPlaceholder: "votre@email.com",
+    yourReview: "Votre avis",
+    commentPlaceholder: "Partagez votre expérience avec ce produit...",
+    photosLabel: "Photos (optionnel, max 3)",
+    previewAlt: (n: number) => `Preview ${n}`,
+    submitting: "Envoi en cours...",
+    submit: "Soumettre l'avis",
+    verificationNote: "Votre avis sera vérifié avant publication",
+  },
+  en: {
+    selectRating: "Please select a rating",
+    commentTooShort: "Your review must be at least 10 characters long",
+    submitFailed: "Failed to submit the review",
+    genericError: "An error occurred. Please try again.",
+    thanks: "Thank you!",
+    submittedNote: "Your review has been submitted and will be published after verification.",
+    leaveReview: "Leave a review",
+    rating: "Rating",
+    name: "Name",
+    namePlaceholder: "Your name",
+    email: "Email",
+    emailPlaceholder: "your@email.com",
+    yourReview: "Your review",
+    commentPlaceholder: "Share your experience with this product...",
+    photosLabel: "Photos (optional, max 3)",
+    previewAlt: (n: number) => `Preview ${n}`,
+    submitting: "Submitting...",
+    submit: "Submit review",
+    verificationNote: "Your review will be verified before publication",
+  },
+} as const;
 
 interface ReviewSubmitModalProps {
   isOpen: boolean;
@@ -16,6 +62,8 @@ export function ReviewSubmitModal({
   productId,
   productName,
 }: ReviewSubmitModalProps) {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState("");
@@ -41,12 +89,12 @@ export function ReviewSubmitModal({
     e.preventDefault();
 
     if (rating === 0) {
-      setError("Veuillez sélectionner une note");
+      setError(t.selectRating);
       return;
     }
 
     if (comment.trim().length < 10) {
-      setError("Votre avis doit contenir au moins 10 caractères");
+      setError(t.commentTooShort);
       return;
     }
 
@@ -90,7 +138,7 @@ export function ReviewSubmitModal({
       });
 
       if (!response.ok) {
-        throw new Error("Échec de la soumission de l'avis");
+        throw new Error(t.submitFailed);
       }
 
       setSubmitSuccess(true);
@@ -105,7 +153,7 @@ export function ReviewSubmitModal({
         setSubmitSuccess(false);
       }, 2000);
     } catch {
-      setError("Une erreur s'est produite. Veuillez réessayer.");
+      setError(t.genericError);
     } finally {
       setIsSubmitting(false);
     }
@@ -142,9 +190,9 @@ export function ReviewSubmitModal({
                 >
                   <span className="material-icons text-white text-4xl">check</span>
                 </motion.div>
-                <h3 className="text-2xl font-bold text-white mb-2">Merci !</h3>
+                <h3 className="text-2xl font-bold text-white mb-2">{t.thanks}</h3>
                 <p className="text-text-muted text-center">
-                  Votre avis a été soumis et sera publié après vérification.
+                  {t.submittedNote}
                 </p>
               </div>
             ) : (
@@ -152,7 +200,7 @@ export function ReviewSubmitModal({
                 {/* Header */}
                 <div className="p-6 border-b border-white/10 flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-bold text-white">Laisser un avis</h2>
+                    <h2 className="text-xl font-bold text-white">{t.leaveReview}</h2>
                     <p className="text-sm text-text-muted mt-1">{productName}</p>
                   </div>
                   <button
@@ -168,7 +216,7 @@ export function ReviewSubmitModal({
                   {/* Rating */}
                   <div className="mb-6">
                     <label className="block text-sm font-medium text-white mb-3">
-                      Note <span className="text-red-500">*</span>
+                      {t.rating} <span className="text-red-500">*</span>
                     </label>
                     <div className="flex gap-2">
                       {[1, 2, 3, 4, 5].map((star) => (
@@ -197,7 +245,7 @@ export function ReviewSubmitModal({
                   {/* Name */}
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-white mb-2">
-                      Nom <span className="text-red-500">*</span>
+                      {t.name} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -205,14 +253,14 @@ export function ReviewSubmitModal({
                       onChange={(e) => setName(e.target.value)}
                       required
                       className="w-full bg-background-secondary border border-white/10 rounded-lg px-4 py-3 text-white focus:border-primary focus:outline-none"
-                      placeholder="Votre nom"
+                      placeholder={t.namePlaceholder}
                     />
                   </div>
 
                   {/* Email */}
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-white mb-2">
-                      Email <span className="text-red-500">*</span>
+                      {t.email} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="email"
@@ -220,14 +268,14 @@ export function ReviewSubmitModal({
                       onChange={(e) => setEmail(e.target.value)}
                       required
                       className="w-full bg-background-secondary border border-white/10 rounded-lg px-4 py-3 text-white focus:border-primary focus:outline-none"
-                      placeholder="votre@email.com"
+                      placeholder={t.emailPlaceholder}
                     />
                   </div>
 
                   {/* Comment */}
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-white mb-2">
-                      Votre avis <span className="text-red-500">*</span>
+                      {t.yourReview} <span className="text-red-500">*</span>
                     </label>
                     <textarea
                       value={comment}
@@ -235,21 +283,21 @@ export function ReviewSubmitModal({
                       required
                       rows={4}
                       className="w-full bg-background-secondary border border-white/10 rounded-lg px-4 py-3 text-white focus:border-primary focus:outline-none resize-none"
-                      placeholder="Partagez votre expérience avec ce produit..."
+                      placeholder={t.commentPlaceholder}
                     />
                   </div>
 
                   {/* Images */}
                   <div className="mb-6">
                     <label className="block text-sm font-medium text-white mb-2">
-                      Photos (optionnel, max 3)
+                      {t.photosLabel}
                     </label>
                     <div className="flex flex-wrap gap-3">
                       {images.map((image, index) => (
                         <div key={index} className="relative w-20 h-20">
                           <img
                             src={URL.createObjectURL(image)}
-                            alt={`Preview ${index + 1}`}
+                            alt={t.previewAlt(index + 1)}
                             className="w-full h-full object-cover rounded-lg"
                           />
                           <button
@@ -289,11 +337,11 @@ export function ReviewSubmitModal({
                     disabled={isSubmitting}
                     className="w-full bg-primary hover:bg-primary-light text-white font-bold py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isSubmitting ? "Envoi en cours..." : "Soumettre l'avis"}
+                    {isSubmitting ? t.submitting : t.submit}
                   </button>
 
                   <p className="text-xs text-text-muted text-center mt-3">
-                    Votre avis sera vérifié avant publication
+                    {t.verificationNote}
                   </p>
                 </form>
               </>

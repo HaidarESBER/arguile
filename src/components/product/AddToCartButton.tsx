@@ -5,7 +5,25 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui";
 import { Product } from "@/types/product";
 import { useCart } from "@/contexts/CartContext";
+import { useLocale } from "@/contexts/LocaleContext";
 import { QuantitySelector } from "./BuyBox/QuantitySelector";
+
+const STRINGS = {
+  fr: {
+    addedAria: "Produit ajouté au panier",
+    addToCartAria: "Ajouter au panier",
+    added: "Ajouté !",
+    addToCart: "Ajouter au panier",
+    unavailable: "Ce produit est actuellement indisponible.",
+  },
+  en: {
+    addedAria: "Product added to cart",
+    addToCartAria: "Add to cart",
+    added: "Added!",
+    addToCart: "Add to cart",
+    unavailable: "This product is currently unavailable.",
+  },
+} as const;
 
 interface AddToCartButtonProps {
   product: Product;
@@ -23,6 +41,8 @@ interface AddToCartButtonProps {
  */
 export function AddToCartButton({ product }: AddToCartButtonProps) {
   const { addItem } = useCart();
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const [quantity, setQuantity] = useState(1);
   const [isAdded, setIsAdded] = useState(false);
 
@@ -70,7 +90,7 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
               : "hover:shadow-lg"
           }`}
           aria-live="polite"
-          aria-label={isAdded ? "Produit ajouté au panier" : "Ajouter au panier"}
+          aria-label={isAdded ? t.addedAria : t.addToCartAria}
         >
           <span className="flex items-center justify-center gap-2 relative z-10">
             <AnimatePresence mode="wait">
@@ -97,7 +117,7 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                     <polyline points="22 4 12 14.01 9 11.01" />
                   </svg>
-                  Ajouté !
+                  {t.added}
                 </motion.span>
               ) : (
                 <motion.span
@@ -107,7 +127,7 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
                   exit={{ opacity: 0, x: 10 }}
                   transition={{ duration: 0.2 }}
                 >
-                  Ajouter au panier
+                  {t.addToCart}
                 </motion.span>
               )}
             </AnimatePresence>
@@ -131,7 +151,7 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
       {/* Out of stock message */}
       {!product.inStock && (
         <p className="text-muted text-sm">
-          Ce produit est actuellement indisponible.
+          {t.unavailable}
         </p>
       )}
     </div>

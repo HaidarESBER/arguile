@@ -5,6 +5,16 @@ import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useCart } from "@/contexts/CartContext";
 import { calculateTotalItems } from "@/types/cart";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    cartLabel: (n: number) => `Panier${n > 0 ? ` (${n} articles)` : ""}`,
+  },
+  en: {
+    cartLabel: (n: number) => `Cart${n > 0 ? ` (${n} items)` : ""}`,
+  },
+} as const;
 
 /**
  * FloatingCartButton — always-visible cart access in the bottom-right corner.
@@ -20,21 +30,44 @@ import { calculateTotalItems } from "@/types/cart";
  * - Lifted above the sticky buy bar on product detail pages
  */
 export function FloatingCartButton() {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const router = useRouter();
   const pathname = usePathname();
   const { items } = useCart();
   const [previousCount, setPreviousCount] = useState(0);
   const [shouldPulse, setShouldPulse] = useState(false);
   const [shouldShake, setShouldShake] = useState(false);
+  // Hidden while the footer is on screen so the button never covers the
+  // copyright text at the bottom of the page.
+  const [footerVisible, setFooterVisible] = useState(false);
 
   const totalItems = calculateTotalItems(items);
 
-  // Hidden only where it is pointless: the cart and checkout pages.
+  // Hidden only where it is pointless: the cart and checkout pages, plus the
+  // catalog listing page (/produits exactly), where every card already has an
+  // add button and the header owns the cart — the floating button is redundant
+  // there and causes the worst collision.
   // On product detail pages it stays visible but lifted above the sticky
   // buy bar (Ajouter/Acheter) that owns the bottom edge there.
   const hiddenPages = ["/panier", "/commande"];
   const isProductDetailPage = pathname.startsWith("/produits/") && pathname !== "/produits";
-  const shouldHide = hiddenPages.some((page) => pathname.startsWith(page));
+  const shouldHide =
+    hiddenPages.some((page) => pathname.startsWith(page)) || pathname === "/produits";
+
+  // Hide while the page footer intersects the viewport so the button never
+  // overlaps the copyright. Re-query each mount; if there is no footer yet,
+  // simply skip observing.
+  useEffect(() => {
+    const footer = document.querySelector("footer");
+    if (!footer) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setFooterVisible(entry.isIntersecting),
+      { threshold: 0 }
+    );
+    observer.observe(footer);
+    return () => observer.disconnect();
+  }, [pathname]);
 
   // Pulse animation when item count increases
   useEffect(() => {
@@ -57,8 +90,9 @@ export function FloatingCartButton() {
     }
   };
 
-  // Don't render on hidden pages (cart/checkout)
-  if (shouldHide) return null;
+  // Don't render on hidden pages (cart/checkout/catalog) or while the footer
+  // is on screen.
+  if (shouldHide || footerVisible) return null;
 
   // No entrance animation: a mount animation that fails to run would leave
   // the button invisible (same failure mode the chat launcher had).
@@ -80,7 +114,7 @@ export function FloatingCartButton() {
           : 'calc(1.5rem + env(safe-area-inset-bottom, 0px))',
       }}
       className="fixed right-4 w-14 h-14 flex items-center justify-center bg-primary text-background rounded-full shadow-lg shadow-black/40 hover:bg-primary-light transition-colors z-[80]"
-      aria-label={`Panier${totalItems > 0 ? ` (${totalItems} articles)` : ""}`}
+      aria-label={t.cartLabel(totalItems)}
     >
           {/* Cart icon */}
           <svg

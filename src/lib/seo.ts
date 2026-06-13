@@ -1,4 +1,5 @@
 import { Product } from "@/types/product";
+import type { Locale } from "@/lib/i18n/config";
 
 /**
  * Canonical site URL.
@@ -6,7 +7,31 @@ import { Product } from "@/types/product";
  * Falls back to the production domain.
  */
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://nuage.fr";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://chichanuage.com";
+
+/**
+ * Default Open Graph image, as a Next.js metadata `images` entry.
+ *
+ * Next does NOT merge the parent layout's openGraph.images when a page sets
+ * its own `openGraph` object — so any page that overrides openGraph must spread
+ * this in, or it ships with no social preview image.
+ */
+const OG_IMAGE_ALT: Record<Locale, string> = {
+  fr: "Nuage — L'art de la détente",
+  en: "Nuage — The art of relaxation",
+};
+
+export const DEFAULT_OG_IMAGE = {
+  url: "/logo.png",
+  width: 1200,
+  height: 630,
+  alt: OG_IMAGE_ALT.fr,
+};
+
+/** Locale-aware variant of DEFAULT_OG_IMAGE (alt text localized). */
+export function getDefaultOgImage(locale: Locale = "fr") {
+  return { ...DEFAULT_OG_IMAGE, alt: OG_IMAGE_ALT[locale] };
+}
 
 /**
  * SEO utilities for generating structured data (JSON-LD) and meta tags
@@ -93,12 +118,17 @@ export function generateProductSchema(product: Product, ratingStats?: {
  * Generate Organization schema (for root layout)
  * Business information and branding
  */
-export function generateOrganizationSchema() {
+const ORGANIZATION_DESCRIPTION: Record<Locale, string> = {
+  fr: "L'art de la détente - Boutique en ligne d'accessoires chicha haut de gamme",
+  en: "The art of relaxation - Online store for high-end hookah accessories",
+};
+
+export function generateOrganizationSchema(locale: Locale = "fr") {
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
     "name": "Nuage",
-    "description": "L'art de la détente - Boutique en ligne d'accessoires chicha haut de gamme",
+    "description": ORGANIZATION_DESCRIPTION[locale],
     "url": SITE_URL,
     "logo": `${SITE_URL}/logo.png`,
     "contactPoint": {
@@ -164,13 +194,15 @@ export function generateOpenGraphTags(config: {
   currency?: string;
   imageWidth?: number;
   imageHeight?: number;
+  /** Visitor locale; drives og:locale (defaults to French). */
+  locale?: Locale;
 }) {
   const tags: OpenGraphTags = {
     "og:title": config.title,
     "og:description": config.description,
     "og:url": config.url,
     "og:type": config.type || "website",
-    "og:locale": "fr_FR",
+    "og:locale": config.locale === "en" ? "en_US" : "fr_FR",
   };
 
   if (config.image) {
@@ -289,13 +321,18 @@ export function safeJsonLd(schema: Record<string, unknown>): string {
  * Generate WebSite schema with SearchAction for Google sitelinks search box
  * Placed on homepage to enable search box in Google search results
  */
-export function generateWebSiteSchema() {
+const WEBSITE_DESCRIPTION: Record<Locale, string> = {
+  fr: "Boutique en ligne d'accessoires chicha haut de gamme",
+  en: "Online store for high-end hookah accessories",
+};
+
+export function generateWebSiteSchema(locale: Locale = "fr") {
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "Nuage",
     "url": SITE_URL,
-    "description": "Boutique en ligne d'accessoires chicha haut de gamme",
+    "description": WEBSITE_DESCRIPTION[locale],
     "potentialAction": {
       "@type": "SearchAction",
       "target": {

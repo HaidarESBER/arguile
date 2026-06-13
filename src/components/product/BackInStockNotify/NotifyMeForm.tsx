@@ -3,6 +3,34 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, CheckCircle } from "lucide-react";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    subscribeFailed: "Échec de l'inscription",
+    genericError: "Une erreur est survenue",
+    unavailable: "Produit indisponible",
+    notifyDescription: "Soyez informé par email dès que ce produit est de retour en stock",
+    confirmed: "Inscription confirmée !",
+    confirmedDescription: "Nous vous informerons par email dès que le produit sera disponible.",
+    emailLabel: "Adresse email",
+    emailPlaceholder: "votre@email.com",
+    submitting: "Inscription...",
+    notifyMe: "Me notifier",
+  },
+  en: {
+    subscribeFailed: "Sign-up failed",
+    genericError: "An error occurred",
+    unavailable: "Product unavailable",
+    notifyDescription: "Get notified by email as soon as this product is back in stock",
+    confirmed: "Sign-up confirmed!",
+    confirmedDescription: "We will email you as soon as the product is available again.",
+    emailLabel: "Email address",
+    emailPlaceholder: "your@email.com",
+    submitting: "Signing up...",
+    notifyMe: "Notify me",
+  },
+} as const;
 
 interface NotifyMeFormProps {
   productId: string;
@@ -17,6 +45,8 @@ const NUAGE_DURATION = 0.4;
  * Allows users to subscribe for email notifications when product is restocked
  */
 export function NotifyMeForm({ productId, productName }: NotifyMeFormProps) {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -40,7 +70,7 @@ export function NotifyMeForm({ productId, productName }: NotifyMeFormProps) {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || "Échec de l'inscription");
+        throw new Error(data.error || t.subscribeFailed);
       }
 
       setIsSuccess(true);
@@ -51,7 +81,7 @@ export function NotifyMeForm({ productId, productName }: NotifyMeFormProps) {
         setIsSuccess(false);
       }, 5000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Une erreur est survenue");
+      setError(err instanceof Error ? err.message : t.genericError);
     } finally {
       setIsSubmitting(false);
     }
@@ -65,10 +95,10 @@ export function NotifyMeForm({ productId, productName }: NotifyMeFormProps) {
         </div>
         <div className="flex-1">
           <h3 className="font-semibold text-primary mb-1">
-            Produit indisponible
+            {t.unavailable}
           </h3>
           <p className="text-sm text-muted">
-            Soyez informé par email dès que ce produit est de retour en stock
+            {t.notifyDescription}
           </p>
         </div>
       </div>
@@ -85,9 +115,9 @@ export function NotifyMeForm({ productId, productName }: NotifyMeFormProps) {
           >
             <CheckCircle className="w-5 h-5 flex-shrink-0" />
             <div className="flex-1">
-              <p className="font-medium">Inscription confirmée !</p>
+              <p className="font-medium">{t.confirmed}</p>
               <p className="text-sm text-green-600">
-                Nous vous informerons par email dès que le produit sera disponible.
+                {t.confirmedDescription}
               </p>
             </div>
           </motion.div>
@@ -103,14 +133,14 @@ export function NotifyMeForm({ productId, productName }: NotifyMeFormProps) {
           >
             <div>
               <label htmlFor="notify-email" className="sr-only">
-                Adresse email
+                {t.emailLabel}
               </label>
               <input
                 id="notify-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="votre@email.com"
+                placeholder={t.emailPlaceholder}
                 required
                 disabled={isSubmitting}
                 className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
@@ -133,7 +163,7 @@ export function NotifyMeForm({ productId, productName }: NotifyMeFormProps) {
               disabled={isSubmitting}
               className="w-full bg-primary text-background hover:bg-accent hover:text-primary px-6 py-2.5 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
-              {isSubmitting ? "Inscription..." : "Me notifier"}
+              {isSubmitting ? t.submitting : t.notifyMe}
             </button>
           </motion.form>
         )}

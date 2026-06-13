@@ -191,41 +191,69 @@ export async function incrementPromotionUses(id: string): Promise<void> {
 }
 
 /**
+ * Customer-facing validation error messages, per locale.
+ * The French values must stay identical to the historical messages.
+ */
+const VALIDATION_ERRORS = {
+  fr: {
+    notFound: "Code promo introuvable",
+    inactive: "Ce code promo n'est plus actif",
+    notStarted: "Ce code promo n'est pas encore actif",
+    expired: "Ce code promo a expire",
+    maxUsesReached: "Ce code promo a atteint le nombre maximum d'utilisations",
+    minimumOrder: (minEuros: string) =>
+      `Commande minimum de ${minEuros} \u20AC requise`,
+  },
+  en: {
+    notFound: "Discount code not found",
+    inactive: "This discount code is no longer active",
+    notStarted: "This discount code is not active yet",
+    expired: "This discount code has expired",
+    maxUsesReached: "This discount code has reached its maximum number of uses",
+    minimumOrder: (minEuros: string) =>
+      `Minimum order of \u20AC${minEuros} required`,
+  },
+} as const;
+
+/**
  * Validate a promotion code against the current cart subtotal.
  * Checks: is_active, date range, usage limits, minimum order.
  *
  * @param code - The promotion code (case-insensitive)
  * @param subtotalCents - Cart subtotal in cents
+ * @param locale - Locale for the customer-facing error messages (default "fr")
  * @returns Validation result with the promotion if valid
  */
 export async function validatePromotion(
   code: string,
-  subtotalCents: number
+  subtotalCents: number,
+  locale: "fr" | "en" = "fr"
 ): Promise<{
   valid: boolean;
   promotion?: Promotion;
   error?: string;
 }> {
+  const t = VALIDATION_ERRORS[locale];
   const promotion = await getPromotionByCode(code);
 
   if (!promotion) {
-    return { valid: false, error: "Code promo introuvable" };
+    return { valid: false, error: t.notFound };
   }
 
   if (!promotion.isActive) {
-    return { valid: false, error: "Ce code promo n'est plus actif" };
+    return { valid: false, error: t.inactive };
   }
 
   const now = new Date();
   const startsAt = new Date(promotion.startsAt);
   if (now < startsAt) {
-    return { valid: false, error: "Ce code promo n'est pas encore actif" };
+    return { valid: false, error: t.notStarted };
   }
 
   if (promotion.expiresAt) {
     const expiresAt = new Date(promotion.expiresAt);
     if (now > expiresAt) {
-      return { valid: false, error: "Ce code promo a expire" };
+      return { valid: false, error: t.expired };
     }
   }
 
@@ -235,18 +263,21 @@ export async function validatePromotion(
   ) {
     return {
       valid: false,
-      error: "Ce code promo a atteint le nombre maximum d'utilisations",
+      error: t.maxUsesReached,
     };
   }
 
   if (subtotalCents < promotion.minimumOrder) {
-    const minEuros = (promotion.minimumOrder / 100).toLocaleString("fr-FR", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
+    const minEuros = (promotion.minimumOrder / 100).toLocaleString(
+      locale === "en" ? "en-US" : "fr-FR",
+      {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }
+    );
     return {
       valid: false,
-      error: `Commande minimum de ${minEuros} \u20AC requise`,
+      error: t.minimumOrder(minEuros),
     };
   }
 

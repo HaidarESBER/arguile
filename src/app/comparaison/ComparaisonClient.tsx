@@ -8,11 +8,59 @@ import { useComparison } from "@/contexts/ComparisonContext";
 import { useCart } from "@/contexts/CartContext";
 import { Product, formatPrice, categoryLabels } from "@/types/product";
 import { StarRatingDisplay } from "@/components/product/StarRating";
+import { useLocale } from "@/contexts/LocaleContext";
 
 interface ComparaisonClientProps {
   products: Product[];
   ratingsMap: Record<string, { averageRating: number; totalReviews: number }>;
 }
+
+const STRINGS = {
+  fr: {
+    title: "Comparaison de produits",
+    comparingCount: (count: number) =>
+      `Comparaison de ${count} produit${count > 1 ? "s" : ""} (max 3)`,
+    noProducts: "Aucun produit à comparer",
+    clearAll: "Tout effacer",
+    features: "Caractéristiques",
+    price: "Prix",
+    rating: "Note",
+    noReviews: "Pas d'avis",
+    availability: "Disponibilité",
+    inStock: "En stock",
+    outOfStock: "Rupture de stock",
+    category: "Catégorie",
+    description: "Description",
+    actions: "Actions",
+    addToCart: "Ajouter au panier",
+    remove: "Retirer",
+    emptyHint:
+      'Parcourez notre catalogue et cliquez sur "Comparer" pour ajouter des produits à la comparaison (max 3)',
+    discoverProducts: "Découvrir les produits",
+  },
+  en: {
+    title: "Product comparison",
+    comparingCount: (count: number) =>
+      `Comparing ${count} product${count > 1 ? "s" : ""} (max 3)`,
+    noProducts: "No products to compare",
+    clearAll: "Clear all",
+    features: "Features",
+    price: "Price",
+    rating: "Rating",
+    noReviews: "No reviews",
+    availability: "Availability",
+    inStock: "In stock",
+    outOfStock: "Out of stock",
+    category: "Category",
+    description: "Description",
+    actions: "Actions",
+    addToCart: "Add to cart",
+    remove: "Remove",
+    emptyHint:
+      'Browse our catalog and click "Compare" to add products to the comparison (max 3)',
+    discoverProducts: "Discover products",
+  },
+} as const;
 
 export default function ComparaisonClient({
   products,
@@ -20,6 +68,8 @@ export default function ComparaisonClient({
 }: ComparaisonClientProps) {
   const { comparisonItems, removeFromComparison, clearComparison } = useComparison();
   const { addItem } = useCart();
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
 
   // Get full product data for comparison items
   const comparisonProducts = products.filter((product) =>
@@ -45,12 +95,12 @@ export default function ComparaisonClient({
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl lg:text-4xl text-primary mb-2">
-              Comparaison de produits
+              {t.title}
             </h1>
             <p className="text-muted">
               {comparisonProducts.length > 0
-                ? `Comparaison de ${comparisonProducts.length} produit${comparisonProducts.length > 1 ? "s" : ""} (max 3)`
-                : "Aucun produit à comparer"}
+                ? t.comparingCount(comparisonProducts.length)
+                : t.noProducts}
             </p>
           </div>
           {comparisonProducts.length > 0 && (
@@ -58,7 +108,7 @@ export default function ComparaisonClient({
               onClick={clearComparison}
               className="text-sm text-muted hover:text-primary transition-colors"
             >
-              Tout effacer
+              {t.clearAll}
             </button>
           )}
         </div>
@@ -71,7 +121,7 @@ export default function ComparaisonClient({
               <thead className="sticky top-0 bg-background z-10">
                 <tr>
                   <th className="text-left p-4 text-sm font-medium text-muted border-b border-background-secondary w-48">
-                    Caractéristiques
+                    {t.features}
                   </th>
                   {comparisonProducts.map((product) => (
                     <th key={product.id} className="p-4 border-b border-background-secondary">
@@ -99,7 +149,7 @@ export default function ComparaisonClient({
               <tbody>
                 {/* Price row */}
                 <tr className="bg-background-secondary">
-                  <td className="p-4 text-sm font-medium text-primary">Prix</td>
+                  <td className="p-4 text-sm font-medium text-primary">{t.price}</td>
                   {comparisonProducts.map((product) => (
                     <td key={product.id} className="p-4 text-center">
                       <span
@@ -122,7 +172,7 @@ export default function ComparaisonClient({
 
                 {/* Rating row */}
                 <tr>
-                  <td className="p-4 text-sm font-medium text-primary">Note</td>
+                  <td className="p-4 text-sm font-medium text-primary">{t.rating}</td>
                   {comparisonProducts.map((product) => {
                     const stats = ratingsMap[product.id];
                     return (
@@ -137,7 +187,7 @@ export default function ComparaisonClient({
                           </div>
                         ) : (
                           <div className="text-center text-muted text-sm">
-                            Pas d&apos;avis
+                            {t.noReviews}
                           </div>
                         )}
                       </td>
@@ -147,13 +197,13 @@ export default function ComparaisonClient({
 
                 {/* Stock row */}
                 <tr className="bg-background-secondary">
-                  <td className="p-4 text-sm font-medium text-primary">Disponibilité</td>
+                  <td className="p-4 text-sm font-medium text-primary">{t.availability}</td>
                   {comparisonProducts.map((product) => (
                     <td key={product.id} className="p-4 text-center">
                       {product.inStock ? (
-                        <span className="text-success text-sm">En stock</span>
+                        <span className="text-success text-sm">{t.inStock}</span>
                       ) : (
-                        <span className="text-error text-sm">Rupture de stock</span>
+                        <span className="text-error text-sm">{t.outOfStock}</span>
                       )}
                     </td>
                   ))}
@@ -161,7 +211,7 @@ export default function ComparaisonClient({
 
                 {/* Category row */}
                 <tr>
-                  <td className="p-4 text-sm font-medium text-primary">Catégorie</td>
+                  <td className="p-4 text-sm font-medium text-primary">{t.category}</td>
                   {comparisonProducts.map((product) => (
                     <td key={product.id} className="p-4 text-center text-sm text-muted">
                       {categoryLabels[product.category]}
@@ -171,7 +221,7 @@ export default function ComparaisonClient({
 
                 {/* Description row */}
                 <tr className="bg-background-secondary">
-                  <td className="p-4 text-sm font-medium text-primary">Description</td>
+                  <td className="p-4 text-sm font-medium text-primary">{t.description}</td>
                   {comparisonProducts.map((product) => (
                     <td key={product.id} className="p-4 text-sm text-muted text-center">
                       {product.shortDescription}
@@ -181,7 +231,7 @@ export default function ComparaisonClient({
 
                 {/* Actions row */}
                 <tr>
-                  <td className="p-4 text-sm font-medium text-primary">Actions</td>
+                  <td className="p-4 text-sm font-medium text-primary">{t.actions}</td>
                   {comparisonProducts.map((product) => (
                     <td key={product.id} className="p-4">
                       <div className="flex flex-col gap-2">
@@ -190,13 +240,13 @@ export default function ComparaisonClient({
                           disabled={!product.inStock}
                           className="px-4 py-2 bg-primary text-background rounded-[--radius-button] hover:bg-accent hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
                         >
-                          Ajouter au panier
+                          {t.addToCart}
                         </button>
                         <button
                           onClick={() => removeFromComparison(product.id)}
                           className="px-4 py-2 text-muted hover:text-primary transition-colors text-sm"
                         >
-                          Retirer
+                          {t.remove}
                         </button>
                       </div>
                     </td>
@@ -237,10 +287,10 @@ export default function ComparaisonClient({
 
             {/* Empty message */}
             <h2 className="text-2xl text-primary mb-3">
-              Aucun produit à comparer
+              {t.noProducts}
             </h2>
             <p className="text-muted mb-8 max-w-md">
-              Parcourez notre catalogue et cliquez sur &quot;Comparer&quot; pour ajouter des produits à la comparaison (max 3)
+              {t.emptyHint}
             </p>
 
             {/* CTA button */}
@@ -248,7 +298,7 @@ export default function ComparaisonClient({
               href="/produits"
               className="inline-flex items-center px-6 py-3 bg-primary text-background rounded-[--radius-button] hover:bg-accent hover:text-primary transition-colors font-medium"
             >
-              Découvrir les produits
+              {t.discoverProducts}
             </Link>
           </motion.div>
         )}
@@ -311,9 +361,9 @@ export default function ComparaisonClient({
 
                     <div className="text-sm text-muted">
                       {product.inStock ? (
-                        <span className="text-success">En stock</span>
+                        <span className="text-success">{t.inStock}</span>
                       ) : (
-                        <span className="text-error">Rupture de stock</span>
+                        <span className="text-error">{t.outOfStock}</span>
                       )}
                     </div>
 
@@ -325,13 +375,13 @@ export default function ComparaisonClient({
                         disabled={!product.inStock}
                         className="flex-1 px-4 py-2 bg-primary text-background rounded-[--radius-button] hover:bg-accent hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
                       >
-                        Ajouter au panier
+                        {t.addToCart}
                       </button>
                       <button
                         onClick={() => removeFromComparison(product.id)}
                         className="px-4 py-2 text-muted hover:text-primary transition-colors text-sm"
                       >
-                        Retirer
+                        {t.remove}
                       </button>
                     </div>
                   </div>

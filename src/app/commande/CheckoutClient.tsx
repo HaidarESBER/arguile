@@ -7,6 +7,20 @@ import { Container } from "@/components/ui";
 import { CheckoutForm, CheckoutSubmitData } from "@/components/checkout/CheckoutForm";
 import { useCart } from "@/contexts/CartContext";
 import { OrderItem } from "@/types/order";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    checkoutError: "Erreur lors de la création de la session de paiement",
+    backToCart: "Retour au panier",
+    title: "Finaliser ma commande",
+  },
+  en: {
+    checkoutError: "Error while creating the payment session",
+    backToCart: "Back to cart",
+    title: "Complete my order",
+  },
+} as const;
 
 /**
  * Client side of the checkout page (/commande)
@@ -17,6 +31,8 @@ import { OrderItem } from "@/types/order";
  */
 export function CheckoutClient() {
   const { items, isHydrated } = useCart();
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const router = useRouter();
   const [isRedirecting, setIsRedirecting] = useState(false);
 
@@ -56,7 +72,7 @@ export function CheckoutClient() {
     if (!response.ok) {
       // CheckoutForm catches and displays this message
       throw new Error(
-        result.error || "Erreur lors de la création de la session de paiement"
+        result.error || t.checkoutError
       );
     }
 
@@ -90,10 +106,10 @@ export function CheckoutClient() {
             <path d="m12 19-7-7 7-7" />
             <path d="M19 12H5" />
           </svg>
-          Retour au panier
+          {t.backToCart}
         </Link>
-        <h1 className="font-heading text-3xl text-primary mt-4">
-          Finaliser ma commande
+        <h1 className="font-display text-3xl text-text mt-4">
+          {t.title}
         </h1>
       </div>
 

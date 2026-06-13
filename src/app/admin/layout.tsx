@@ -1,7 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { Menu, X, MessageSquare, Layers, Tag } from "lucide-react";
+import {
+  Menu,
+  X,
+  LayoutDashboard,
+  Package,
+  ShoppingBag,
+  Mail,
+  Wallet,
+  BarChart3,
+  Boxes,
+  Users,
+} from "lucide-react";
 import { useState } from "react";
 
 export default function AdminLayout({
@@ -53,51 +64,38 @@ export default function AdminLayout({
             overflow-y-auto
           `}
         >
-          <nav className="p-4 space-y-2">
+          <nav className="p-4 space-y-1">
             <Link
               href="/admin"
               onClick={() => setIsSidebarOpen(false)}
-              className="block px-4 py-2 rounded-md text-primary hover:bg-accent/20 transition-colors"
+              className="flex items-center gap-3 px-4 py-2 rounded-md text-primary hover:bg-accent/20 transition-colors"
             >
-              Dashboard
+              <LayoutDashboard className="w-4 h-4" />
+              Tableau de bord
             </Link>
             <Link
               href="/admin/produits"
               onClick={() => setIsSidebarOpen(false)}
-              className="block px-4 py-2 rounded-md text-primary hover:bg-accent/20 transition-colors"
+              className="flex items-center gap-3 px-4 py-2 rounded-md text-primary hover:bg-accent/20 transition-colors"
             >
+              <Package className="w-4 h-4" />
               Produits
             </Link>
             <Link
               href="/admin/commandes"
               onClick={() => setIsSidebarOpen(false)}
-              className="block px-4 py-2 rounded-md text-primary hover:bg-accent/20 transition-colors"
+              className="flex items-center gap-3 px-4 py-2 rounded-md text-primary hover:bg-accent/20 transition-colors"
             >
+              <ShoppingBag className="w-4 h-4" />
               Commandes
             </Link>
             <Link
-              href="/admin/reviews"
+              href="/admin/emails"
               onClick={() => setIsSidebarOpen(false)}
-              className="flex items-center gap-2 px-4 py-2 rounded-md text-primary hover:bg-accent/20 transition-colors"
+              className="flex items-center gap-3 px-4 py-2 rounded-md text-primary hover:bg-accent/20 transition-colors"
             >
-              <MessageSquare className="w-4 h-4" />
-              Avis clients
-            </Link>
-            <Link
-              href="/admin/pipeline"
-              onClick={() => setIsSidebarOpen(false)}
-              className="flex items-center gap-2 px-4 py-2 rounded-md text-primary hover:bg-accent/20 transition-colors"
-            >
-              <Layers className="w-4 h-4" />
-              Pipeline
-            </Link>
-            <Link
-              href="/admin/promotions"
-              onClick={() => setIsSidebarOpen(false)}
-              className="flex items-center gap-2 px-4 py-2 rounded-md text-primary hover:bg-accent/20 transition-colors"
-            >
-              <Tag className="w-4 h-4" />
-              Promotions
+              <Mail className="w-4 h-4" />
+              Emails
             </Link>
 
             {/* Analytics Section */}
@@ -106,53 +104,52 @@ export default function AdminLayout({
                 Analytics
               </p>
               <Link
-                href="/admin"
-                onClick={() => setIsSidebarOpen(false)}
-                className="block px-4 py-2 rounded-md text-primary hover:bg-accent/20 transition-colors"
-              >
-                📊 Dashboard
-              </Link>
-              <Link
                 href="/admin/analytics/revenue"
                 onClick={() => setIsSidebarOpen(false)}
-                className="block px-4 py-2 rounded-md text-primary hover:bg-accent/20 transition-colors"
+                className="flex items-center gap-3 px-4 py-2 rounded-md text-primary hover:bg-accent/20 transition-colors"
               >
-                💰 Revenus
-              </Link>
-              <Link
-                href="/admin/analytics/products"
-                onClick={() => setIsSidebarOpen(false)}
-                className="block px-4 py-2 rounded-md text-primary hover:bg-accent/20 transition-colors"
-              >
-                📦 Produits
+                <Wallet className="w-4 h-4" />
+                Revenus
               </Link>
               <Link
                 href="/admin/analytics/sales"
                 onClick={() => setIsSidebarOpen(false)}
-                className="block px-4 py-2 rounded-md text-primary hover:bg-accent/20 transition-colors"
+                className="flex items-center gap-3 px-4 py-2 rounded-md text-primary hover:bg-accent/20 transition-colors"
               >
-                📈 Ventes
+                <BarChart3 className="w-4 h-4" />
+                Ventes
+              </Link>
+              <Link
+                href="/admin/analytics/products"
+                onClick={() => setIsSidebarOpen(false)}
+                className="flex items-center gap-3 px-4 py-2 rounded-md text-primary hover:bg-accent/20 transition-colors"
+              >
+                <Package className="w-4 h-4" />
+                Produits
               </Link>
               <Link
                 href="/admin/analytics/inventory"
                 onClick={() => setIsSidebarOpen(false)}
-                className="block px-4 py-2 rounded-md text-primary hover:bg-accent/20 transition-colors"
+                className="flex items-center gap-3 px-4 py-2 rounded-md text-primary hover:bg-accent/20 transition-colors"
               >
-                📦 Stocks
+                <Boxes className="w-4 h-4" />
+                Stocks
               </Link>
               <Link
                 href="/admin/analytics/orders"
                 onClick={() => setIsSidebarOpen(false)}
-                className="block px-4 py-2 rounded-md text-primary hover:bg-accent/20 transition-colors"
+                className="flex items-center gap-3 px-4 py-2 rounded-md text-primary hover:bg-accent/20 transition-colors"
               >
-                📋 Commandes
+                <ShoppingBag className="w-4 h-4" />
+                Commandes
               </Link>
               <Link
                 href="/admin/analytics/customers"
                 onClick={() => setIsSidebarOpen(false)}
-                className="block px-4 py-2 rounded-md text-primary hover:bg-accent/20 transition-colors"
+                className="flex items-center gap-3 px-4 py-2 rounded-md text-primary hover:bg-accent/20 transition-colors"
               >
-                👥 Clients
+                <Users className="w-4 h-4" />
+                Clients
               </Link>
             </div>
           </nav>

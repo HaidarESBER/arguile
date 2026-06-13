@@ -65,12 +65,3 @@ export function getRecentlyViewedIds(excludeId?: string): string[] {
     .filter((item) => item.productId !== excludeId)
     .map((item) => item.productId);
 }
-
-/**
- * Check if product should show trending badge (simple static rule for MVP)
- */
-export function isTrending(product: Product): boolean {
-  // MVP: Show trending badge on featured products
-  // In future: Replace with actual view count or sales data
-  return product.featured;
-}

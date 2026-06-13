@@ -13,19 +13,60 @@ const MAX_COMMENT_LENGTH = 1000;
 const MAX_IMAGES = 5;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const STRINGS = {
+  fr: {
+    rateLimited: RATE_LIMIT_MESSAGE,
+    maxImages: (max: number) => `Maximum ${max} images autorisées`,
+    storageUnavailable: "Configuration du stockage indisponible",
+    invalidImageUrl: "URL d'image invalide",
+    disallowedImageUrl: "URL d'image non autorisée",
+    requiredFields: "Tous les champs requis doivent être remplis",
+    ratingRange: "La note doit être entre 1 et 5",
+    commentTooShort: (min: number) =>
+      `Le commentaire doit contenir au moins ${min} caractères`,
+    commentTooLong: (max: number) =>
+      `Le commentaire ne peut pas dépasser ${max} caractères`,
+    nameLength: (max: number) =>
+      `Le nom doit contenir entre 1 et ${max} caractères`,
+    invalidEmail: "Format d'email invalide",
+    submitFailed: "Échec de la soumission de l'avis",
+    serverError: "Erreur serveur",
+  },
+  en: {
+    rateLimited: "Too many requests. Please try again in a few moments.",
+    maxImages: (max: number) => `Maximum ${max} images allowed`,
+    storageUnavailable: "Storage configuration unavailable",
+    invalidImageUrl: "Invalid image URL",
+    disallowedImageUrl: "Image URL not allowed",
+    requiredFields: "All required fields must be filled in",
+    ratingRange: "The rating must be between 1 and 5",
+    commentTooShort: (min: number) =>
+      `The comment must be at least ${min} characters long`,
+    commentTooLong: (max: number) =>
+      `The comment cannot exceed ${max} characters`,
+    nameLength: (max: number) =>
+      `The name must be between 1 and ${max} characters long`,
+    invalidEmail: "Invalid email format",
+    submitFailed: "Failed to submit the review",
+    serverError: "Server error",
+  },
+} as const;
+
+type Strings = (typeof STRINGS)[keyof typeof STRINGS];
+
 /**
  * Validate that every image URL is https and hosted on the Supabase project
  * storage domain (derived from NEXT_PUBLIC_SUPABASE_URL). Prevents storing
  * arbitrary attacker-controlled URLs that would later be rendered on product
  * pages.
  */
-function validateImages(images: unknown): { ok: boolean; error?: string } {
+function validateImages(images: unknown, t: Strings): { ok: boolean; error?: string } {
   if (images === undefined || images === null) return { ok: true };
 
   if (!Array.isArray(images) || images.length > MAX_IMAGES) {
     return {
       ok: false,
-      error: `Maximum ${MAX_IMAGES} images autorisées`,
+      error: t.maxImages(MAX_IMAGES),
     };
   }
 
@@ -33,21 +74,21 @@ function validateImages(images: unknown): { ok: boolean; error?: string } {
   try {
     allowedHost = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).host;
   } catch {
-    return { ok: false, error: "Configuration du stockage indisponible" };
+    return { ok: false, error: t.storageUnavailable };
   }
 
   for (const image of images) {
     if (typeof image !== "string" || image.length > 2048) {
-      return { ok: false, error: "URL d'image invalide" };
+      return { ok: false, error: t.invalidImageUrl };
     }
     let parsed: URL;
     try {
       parsed = new URL(image);
     } catch {
-      return { ok: false, error: "URL d'image invalide" };
+      return { ok: false, error: t.invalidImageUrl };
     }
     if (parsed.protocol !== "https:" || parsed.host !== allowedHost) {
-      return { ok: false, error: "URL d'image non autorisée" };
+      return { ok: false, error: t.disallowedImageUrl };
     }
   }
 
@@ -55,6 +96,10 @@ function validateImages(images: unknown): { ok: boolean; error?: string } {
 }
 
 export async function POST(request: NextRequest) {
+  const v = request.cookies.get("locale")?.value;
+  const locale = v === "en" ? "en" : "fr";
+  const t = STRINGS[locale];
+
   try {
     // CSRF: reject cross-origin submissions
     const csrfError = assertSameOrigin(request);
@@ -64,7 +109,7 @@ export async function POST(request: NextRequest) {
     const rate = checkRateLimit(`reviews-submit:${getClientIp(request)}`, 5);
     if (!rate.allowed) {
       return NextResponse.json(
-        { error: RATE_LIMIT_MESSAGE },
+        { error: t.rateLimited },
         {
           status: 429,
           headers: { "Retry-After": String(rate.retryAfterSeconds) },
@@ -80,7 +125,7 @@ export async function POST(request: NextRequest) {
     // Validation
     if (!productId || !rating || !comment || !name || !email) {
       return NextResponse.json(
-        { error: "Tous les champs requis doivent être remplis" },
+        { error: t.requiredFields },
         { status: 400 }
       );
     }
@@ -92,41 +137,41 @@ export async function POST(request: NextRequest) {
       rating > 5
     ) {
       return NextResponse.json(
-        { error: "La note doit être entre 1 et 5" },
+        { error: t.ratingRange },
         { status: 400 }
       );
     }
 
     if (typeof comment !== "string" || comment.trim().length < MIN_COMMENT_LENGTH) {
       return NextResponse.json(
-        { error: `Le commentaire doit contenir au moins ${MIN_COMMENT_LENGTH} caractères` },
+        { error: t.commentTooShort(MIN_COMMENT_LENGTH) },
         { status: 400 }
       );
     }
 
     if (comment.trim().length > MAX_COMMENT_LENGTH) {
       return NextResponse.json(
-        { error: `Le commentaire ne peut pas dépasser ${MAX_COMMENT_LENGTH} caractères` },
+        { error: t.commentTooLong(MAX_COMMENT_LENGTH) },
         { status: 400 }
       );
     }
 
     if (typeof name !== "string" || name.trim().length === 0 || name.trim().length > MAX_NAME_LENGTH) {
       return NextResponse.json(
-        { error: `Le nom doit contenir entre 1 et ${MAX_NAME_LENGTH} caractères` },
+        { error: t.nameLength(MAX_NAME_LENGTH) },
         { status: 400 }
       );
     }
 
     if (typeof email !== "string" || email.trim().length > 254 || !EMAIL_REGEX.test(email.trim())) {
       return NextResponse.json(
-        { error: "Format d'email invalide" },
+        { error: t.invalidEmail },
         { status: 400 }
       );
     }
 
     // Validate image URLs: https only, Supabase storage host only
-    const imagesValidation = validateImages(images);
+    const imagesValidation = validateImages(images, t);
     if (!imagesValidation.ok) {
       return NextResponse.json(
         { error: imagesValidation.error },
@@ -158,7 +203,7 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error("Error creating review:", error);
       return NextResponse.json(
-        { error: "Échec de la soumission de l'avis" },
+        { error: t.submitFailed },
         { status: 500 }
       );
     }
@@ -170,7 +215,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error in review submission:", error);
     return NextResponse.json(
-      { error: "Erreur serveur" },
+      { error: t.serverError },
       { status: 500 }
     );
   }

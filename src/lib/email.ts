@@ -11,8 +11,9 @@ import { generateUnsubscribeToken } from "@/lib/newsletter-tokens";
 import { sendEmail, getFromAddress, isMailerConfigured } from "@/lib/mailer";
 
 /**
- * All customer-facing emails, delivered through the SMTP relay configured in
+ * All customer-facing emails, delivered through the mailer in
  * src/lib/mailer.ts (Brevo). Templates are React Email components.
+ * Each send is tagged with a `kind` so the admin email log can categorize it.
  */
 
 /**
@@ -34,6 +35,7 @@ export async function sendOrderConfirmationEmail(
     const { success, error } = await sendEmail({
       from: getFromAddress("transactional"),
       to: order.shippingAddress.email,
+      kind: "order_confirmation",
       subject: `Confirmation de commande ${order.orderNumber}`,
       react: OrderConfirmationEmail({ order }),
     });
@@ -69,6 +71,7 @@ export async function sendShippingNotificationEmail(
     const { success, error } = await sendEmail({
       from: getFromAddress("transactional"),
       to: order.shippingAddress.email,
+      kind: "shipping",
       subject: `Votre commande ${order.orderNumber} a été expédiée !`,
       react: ShippingNotificationEmail({
         order,
@@ -117,11 +120,13 @@ export async function sendOrderStatusUpdateEmail(
       shipped: "Expédiée",
       delivered: "Livrée",
       cancelled: "Annulée",
+      refunded: "Remboursée",
     };
 
     const { success, error } = await sendEmail({
       from: getFromAddress("transactional"),
       to: order.shippingAddress.email,
+      kind: "status_update",
       subject: `Mise à jour de votre commande ${order.orderNumber} — ${statusLabels[newStatus]}`,
       react: OrderStatusUpdateEmail({ order, newStatus, oldStatus }),
     });
@@ -170,6 +175,7 @@ export async function sendWelcomeEmail(
     const { success, error } = await sendEmail({
       from: getFromAddress("transactional"),
       to: email,
+      kind: "welcome",
       subject: "Bienvenue dans l'univers Nuage !",
       react: WelcomeEmail({ unsubscribeUrl }),
       headers: { "List-Unsubscribe": `<${unsubscribeUrl}>` },
@@ -219,6 +225,7 @@ export async function sendAbandonedCartEmail(
     const { success, error } = await sendEmail({
       from: getFromAddress("marketing"),
       to: email,
+      kind: "abandoned_cart",
       subject,
       react: AbandonedCartEmail({ order, unsubscribeUrl }),
       headers: { "List-Unsubscribe": `<${unsubscribeUrl}>` },
@@ -260,6 +267,7 @@ export async function sendWinBackEmail(
     const { success, error } = await sendEmail({
       from: getFromAddress("marketing"),
       to: email,
+      kind: "winback",
       subject,
       react: WinBackEmail({ firstName, products, unsubscribeUrl }),
       headers: { "List-Unsubscribe": `<${unsubscribeUrl}>` },

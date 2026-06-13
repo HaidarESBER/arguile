@@ -1,9 +1,50 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SUPPORT_EMAIL } from '@/lib/support';
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    greeting: "Salut habibi ! 👋 Comment je peux t'aider ?",
+    errorMessage: (email: string) =>
+      `Oups, j'ai un petit problème technique 😅 Réessaie dans quelques secondes ou contacte ${email}`,
+    openChat: "Ouvrir le chat d'assistance",
+    online: "En ligne • Répond en ~5 sec",
+    escalationPrompt: "💡 Besoin d'aide personnalisée ?",
+    contactSupport: "Contacter le support",
+    quickQuestions: "Questions rapides:",
+    inputPlaceholder: "Écris ton message...",
+    poweredBy: "Propulsé par IA • Réponses en temps réel",
+    quickActions: [
+      { label: "🔥 Quelle chicha choisir ?", message: "Je cherche une chicha, peux-tu me conseiller ?" },
+      { label: "💨 Quel bol recommandes-tu ?", message: "Quel est le meilleur bol pour chicha ?" },
+      { label: "✨ Conseils débutant", message: "Je débute avec les chichas, des conseils ?" },
+      { label: "🧹 Comment nettoyer ?", message: "Comment bien nettoyer ma chicha ?" },
+    ],
+  },
+  en: {
+    greeting: "Hey habibi! 👋 How can I help you?",
+    errorMessage: (email: string) =>
+      `Oops, I'm having a little technical hiccup 😅 Try again in a few seconds or contact ${email}`,
+    openChat: "Open the support chat",
+    online: "Online • Replies in ~5 sec",
+    escalationPrompt: "💡 Need personalized help?",
+    contactSupport: "Contact support",
+    quickQuestions: "Quick questions:",
+    inputPlaceholder: "Type your message...",
+    poweredBy: "Powered by AI • Real-time replies",
+    quickActions: [
+      { label: "🔥 Which hookah should I choose?", message: "I'm looking for a hookah, can you advise me?" },
+      { label: "💨 Which bowl do you recommend?", message: "What is the best hookah bowl?" },
+      { label: "✨ Beginner tips", message: "I'm new to hookahs, any tips?" },
+      { label: "🧹 How do I clean it?", message: "How do I properly clean my hookah?" },
+    ],
+  },
+} as const;
 
 interface ProductCard {
   slug: string;
@@ -21,6 +62,8 @@ interface Message {
 }
 
 export function SupportChat() {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const pathname = usePathname();
   const isProductDetailPage =
     pathname.startsWith("/produits/") && pathname !== "/produits";
@@ -29,6 +72,22 @@ export function SupportChat() {
   // renders on mobile. Stay hidden until the visitor has made their cookie
   // choice (read once on mount + custom event for the no-reload path).
   const [consentDecided, setConsentDecided] = useState(false);
+  // Hidden while the page footer is on screen so the launcher never covers
+  // the copyright text at the bottom of the page.
+  const [footerVisible, setFooterVisible] = useState(false);
+
+  // Hide while the page footer intersects the viewport. Re-query each mount;
+  // if there is no footer yet, simply skip observing.
+  useEffect(() => {
+    const footer = document.querySelector("footer");
+    if (!footer) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setFooterVisible(entry.isIntersecting),
+      { threshold: 0 }
+    );
+    observer.observe(footer);
+    return () => observer.disconnect();
+  }, [pathname]);
 
   useEffect(() => {
     const check = () =>
@@ -42,7 +101,7 @@ export function SupportChat() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: "Salut habibi ! 👋 Comment je peux t'aider ?",
+      content: t.greeting,
       timestamp: new Date(),
     },
   ]);
@@ -111,7 +170,7 @@ export function SupportChat() {
         ...prev,
         {
           role: 'assistant',
-          content: `Oups, j'ai un petit problème technique 😅 Réessaie dans quelques secondes ou contacte ${SUPPORT_EMAIL}`,
+          content: t.errorMessage(SUPPORT_EMAIL),
           timestamp: new Date(),
         },
       ]);
@@ -128,12 +187,7 @@ export function SupportChat() {
   };
 
   // Quick action buttons
-  const quickActions = [
-    { label: "🔥 Quelle chicha choisir ?", message: "Je cherche une chicha, peux-tu me conseiller ?" },
-    { label: "💨 Quel bol recommandes-tu ?", message: "Quel est le meilleur bol pour chicha ?" },
-    { label: "✨ Conseils débutant", message: "Je débute avec les chichas, des conseils ?" },
-    { label: "🧹 Comment nettoyer ?", message: "Comment bien nettoyer ma chicha ?" },
-  ];
+  const quickActions = t.quickActions;
 
   return (
     <>
@@ -141,10 +195,10 @@ export function SupportChat() {
           animation: an entrance starting at scale-0 leaves the launcher
           permanently invisible if the animation ever fails to run. CSS
           transitions handle hover/active feedback instead. */}
-      {!isOpen && consentDecided && (
+      {!isOpen && consentDecided && !footerVisible && (
         <button
           onClick={() => setIsOpen(true)}
-          aria-label="Ouvrir le chat d'assistance"
+          aria-label={t.openChat}
           style={{ backgroundColor: '#85572A' }}
           className={`fixed left-4 sm:left-6 z-[90] w-14 h-14 sm:w-16 sm:h-16 rounded-full shadow-lg shadow-black/50 flex items-center justify-center text-white hover:shadow-xl hover:scale-105 active:scale-95 transition-all ${
             isProductDetailPage
@@ -176,11 +230,11 @@ export function SupportChat() {
             <div style={{ backgroundColor: '#85572A' }} className="p-3 sm:p-4 flex items-center justify-between border-b border-white/10">
               <div className="flex items-center gap-2 sm:gap-3">
                 <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center overflow-hidden bg-white">
-                  <img src="/cbot.jpeg" alt="Habibi Chichbot" className="w-full h-full object-cover" />
+                  <Image src="/cbot.jpeg" alt="Habibi Chichbot" width={40} height={40} className="w-full h-full object-cover" />
                 </div>
                 <div>
                   <h3 className="font-bold text-white text-sm sm:text-base">Habibi Chichbot</h3>
-                  <p className="text-[10px] sm:text-xs text-white/70">En ligne • Répond en ~5 sec</p>
+                  <p className="text-[10px] sm:text-xs text-white/70">{t.online}</p>
                 </div>
               </div>
               <button
@@ -265,14 +319,14 @@ export function SupportChat() {
               {showEscalation && (
                 <div className="border rounded-lg p-3 bg-orange-50" style={{ borderColor: '#85572A' }}>
                   <p className="text-xs text-gray-700 mb-2">
-                    💡 Besoin d&apos;aide personnalisée ?
+                    {t.escalationPrompt}
                   </p>
                   <a
                     href={`mailto:${SUPPORT_EMAIL}`}
                     style={{ backgroundColor: '#85572A' }}
                     className="text-xs text-white px-3 py-1.5 rounded-full hover:opacity-90 transition-opacity inline-block"
                   >
-                    Contacter le support
+                    {t.contactSupport}
                   </a>
                 </div>
               )}
@@ -283,7 +337,7 @@ export function SupportChat() {
             {/* Quick Actions (only show at start) */}
             {messages.length <= 2 && (
               <div className="p-3 sm:p-4 border-t border-gray-200" style={{ backgroundColor: '#F5E6D3' }}>
-                <p className="text-xs text-gray-600 mb-2 font-medium">Questions rapides:</p>
+                <p className="text-xs text-gray-600 mb-2 font-medium">{t.quickQuestions}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {quickActions.map((action, idx) => (
                     <button
@@ -309,7 +363,7 @@ export function SupportChat() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="Écris ton message..."
+                  placeholder={t.inputPlaceholder}
                   disabled={isLoading}
                   className="flex-1 bg-gray-50 border border-gray-300 rounded-full px-4 py-3 sm:py-2 text-sm sm:text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 disabled:opacity-50"
                   style={{ '--tw-ring-color': '#85572A' } as React.CSSProperties}
@@ -324,7 +378,7 @@ export function SupportChat() {
                 </button>
               </div>
               <p className="text-[10px] text-gray-400 mt-2 text-center hidden sm:block">
-                Propulsé par IA • Réponses en temps réel
+                {t.poweredBy}
               </p>
             </div>
           </motion.div>

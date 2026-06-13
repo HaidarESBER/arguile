@@ -128,7 +128,7 @@ describe("generateOpenGraphTags", () => {
     const tags = generateOpenGraphTags({
       title: "Test",
       description: "Desc",
-      url: "https://nuage.fr/test",
+      url: "https://chichanuage.com/test",
     });
     expect(tags["og:title"]).toBe("Test");
     expect(tags["og:description"]).toBe("Desc");
@@ -139,7 +139,7 @@ describe("generateOpenGraphTags", () => {
     const tags = generateOpenGraphTags({
       title: "Test",
       description: "Desc",
-      url: "https://nuage.fr",
+      url: "https://chichanuage.com",
     });
     expect(tags["og:type"]).toBe("website");
   });
@@ -148,7 +148,7 @@ describe("generateOpenGraphTags", () => {
     const tags = generateOpenGraphTags({
       title: "Test",
       description: "Desc",
-      url: "https://nuage.fr",
+      url: "https://chichanuage.com",
       image: "/img.jpg",
     }) as Record<string, unknown>;
     expect(tags["og:image"]).toBe(`${SITE_URL}/img.jpg`);
@@ -159,7 +159,7 @@ describe("generateOpenGraphTags", () => {
     const tags = generateOpenGraphTags({
       title: "Test",
       description: "Desc",
-      url: "https://nuage.fr",
+      url: "https://chichanuage.com",
       type: "product",
       price: 4999,
     }) as Record<string, unknown>;

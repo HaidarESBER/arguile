@@ -3,6 +3,24 @@
 import { Product } from "@/types/product";
 import { ProductCard } from "./ProductCard";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    showing: (from: number, to: number, total: number) =>
+      `Affichage de ${from}-${to} sur ${total} produits`,
+    noProducts: "Aucun produit trouvé",
+    previous: "Précédent",
+    next: "Suivant",
+  },
+  en: {
+    showing: (from: number, to: number, total: number) =>
+      `Showing ${from}-${to} of ${total} products`,
+    noProducts: "No products found",
+    previous: "Previous",
+    next: "Next",
+  },
+} as const;
 
 interface ProductGridProps {
   products: Product[];
@@ -33,6 +51,8 @@ export function ProductGrid({ products, total, currentPage, columns = 3, ratings
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { replace } = useRouter();
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
 
   const columnClasses: Record<2 | 3 | 4, string> = {
     2: "lg:grid-cols-2",
@@ -52,8 +72,11 @@ export function ProductGrid({ products, total, currentPage, columns = 3, ratings
     <div className="space-y-8">
       {/* Results summary */}
       <div className="text-sm text-muted">
-        Affichage de {products.length > 0 ? (currentPage - 1) * PRODUCTS_PER_PAGE + 1 : 0}-
-        {Math.min(currentPage * PRODUCTS_PER_PAGE, total)} sur {total} produits
+        {t.showing(
+          products.length > 0 ? (currentPage - 1) * PRODUCTS_PER_PAGE + 1 : 0,
+          Math.min(currentPage * PRODUCTS_PER_PAGE, total),
+          total
+        )}
       </div>
 
       {/* Product grid */}
@@ -73,7 +96,7 @@ export function ProductGrid({ products, total, currentPage, columns = 3, ratings
         </div>
       ) : (
         <div className="text-center py-12">
-          <p className="text-muted">Aucun produit trouvé</p>
+          <p className="text-muted">{t.noProducts}</p>
         </div>
       )}
 
@@ -85,7 +108,7 @@ export function ProductGrid({ products, total, currentPage, columns = 3, ratings
             disabled={currentPage === 1}
             className="px-4 py-2 text-sm font-medium text-primary hover:text-accent disabled:text-muted disabled:cursor-not-allowed transition-colors"
           >
-            Précédent
+            {t.previous}
           </button>
 
           <div className="flex gap-1">
@@ -130,7 +153,7 @@ export function ProductGrid({ products, total, currentPage, columns = 3, ratings
             disabled={currentPage === totalPages}
             className="px-4 py-2 text-sm font-medium text-primary hover:text-accent disabled:text-muted disabled:cursor-not-allowed transition-colors"
           >
-            Suivant
+            {t.next}
           </button>
         </div>
       )}

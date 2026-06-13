@@ -9,9 +9,47 @@ import { CartButton } from "@/components/cart";
 import { SearchOverlay } from "@/components/search/SearchOverlay";
 import { useComparison } from "@/contexts/ComparisonContext";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { categoryLabels } from "@/types/product";
+import { getCategoryLabel } from "@/types/product";
+import { useLocale } from "@/contexts/LocaleContext";
 import { createClient } from "@/lib/supabase/client";
 import { Settings } from "lucide-react";
+
+const STRINGS = {
+  fr: {
+    freeShipping: "Livraison offerte dès 50 €",
+    fastShipping: "Expédition sous 24h",
+    returns: "Retours sous 14 jours",
+    openSearch: "Ouvrir la recherche",
+    searchPlaceholder: "Rechercher...",
+    products: "Produits",
+    compareCount: (n: number) => `Comparer (${n})`,
+    search: "Rechercher",
+    openMenu: "Ouvrir le menu",
+    closeMenu: "Fermer le menu",
+    navMenu: "Menu de navigation",
+    menu: "Menu",
+    allProducts: "Tous les Produits",
+    compare: "Comparer",
+    cart: "Panier",
+  },
+  en: {
+    freeShipping: "Free shipping from €50",
+    fastShipping: "Ships within 24h",
+    returns: "14-day returns",
+    openSearch: "Open search",
+    searchPlaceholder: "Search...",
+    products: "Products",
+    compareCount: (n: number) => `Compare (${n})`,
+    search: "Search",
+    openMenu: "Open menu",
+    closeMenu: "Close menu",
+    navMenu: "Navigation menu",
+    menu: "Menu",
+    allProducts: "All Products",
+    compare: "Compare",
+    cart: "Cart",
+  },
+} as const;
 
 /**
  * Site header with brand name and navigation
@@ -32,6 +70,8 @@ export function Header() {
   const { comparisonItems } = useComparison();
   const prefersReducedMotion = useReducedMotion();
   const menuRef = useRef<HTMLDivElement>(null);
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
 
   useEffect(() => {
     // Mount flag so the portal only renders client-side; deferred to effect to avoid SSR hydration mismatch
@@ -136,9 +176,9 @@ export function Header() {
     <>
       {/* Announcement bar — threshold must match FREE_SHIPPING_THRESHOLD in lib/shipping.ts */}
       <div className="bg-primary text-background-dark py-1.5 text-center text-xs font-semibold tracking-wide z-50 sticky top-0 whitespace-nowrap overflow-hidden">
-        Livraison offerte dès 50&nbsp;€
+        {t.freeShipping}
         <span className="hidden sm:inline">
-          <span aria-hidden="true" className="mx-1.5 opacity-50">·</span> Expédition sous 24h <span aria-hidden="true" className="mx-1.5 opacity-50">·</span> Retours sous 14 jours
+          <span aria-hidden="true" className="mx-1.5 opacity-50">·</span> {t.fastShipping} <span aria-hidden="true" className="mx-1.5 opacity-50">·</span> {t.returns}
         </span>
       </div>
 
@@ -204,7 +244,7 @@ export function Header() {
             <button
               type="button"
               onClick={() => setIsSearchOpen(true)}
-              aria-label="Ouvrir la recherche"
+              aria-label={t.openSearch}
               className="relative max-w-sm w-full h-10 bg-surface-dark/50 border border-white/10 hover:border-primary/50 rounded-full text-sm text-gray-400 text-left pl-10 pr-4 transition-colors cursor-text"
             >
               <span
@@ -213,7 +253,7 @@ export function Header() {
               >
                 search
               </span>
-              Rechercher...
+              {t.searchPlaceholder}
             </button>
 
             <nav className="flex items-center gap-4 h-10">
@@ -221,7 +261,7 @@ export function Header() {
               href="/produits"
               className="text-xs font-medium text-white/90 hover:text-primary transition-colors"
             >
-              Produits
+              {t.products}
             </Link>
             <Link
               href="/blog"
@@ -242,7 +282,7 @@ export function Header() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
                 </svg>
-                Comparer ({comparisonItems.length})
+                {t.compareCount(comparisonItems.length)}
               </Link>
             )}
 
@@ -272,7 +312,7 @@ export function Header() {
             <button
               onClick={() => setIsSearchOpen(!isSearchOpen)}
               className="p-2 inline-flex items-center justify-center text-white/90 hover:text-primary transition-colors"
-              aria-label="Rechercher"
+              aria-label={t.search}
             >
               <span className="material-icons text-2xl leading-none" aria-hidden="true">search</span>
             </button>
@@ -281,7 +321,7 @@ export function Header() {
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="p-2 text-white/90 hover:text-primary transition-colors"
-              aria-label={isMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+              aria-label={isMenuOpen ? t.closeMenu : t.openMenu}
               aria-expanded={isMenuOpen}
             >
               {/* Hamburger Icon */}
@@ -313,7 +353,7 @@ export function Header() {
           ref={menuRef}
           role="dialog"
           aria-modal="true"
-          aria-label="Menu de navigation"
+          aria-label={t.navMenu}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -346,11 +386,11 @@ export function Header() {
           >
             {/* Menu Header */}
             <div className="sticky top-0 bg-background-dark/95 backdrop-blur-xl border-b border-white/10 p-4 flex items-center justify-between z-10">
-              <span className="font-heading text-lg text-white font-bold">Menu</span>
+              <span className="font-heading text-lg text-white font-bold">{t.menu}</span>
               <button
                 onClick={handleNavClick}
                 className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-                aria-label="Fermer le menu"
+                aria-label={t.closeMenu}
               >
                 <span className="material-icons text-xl" aria-hidden="true">close</span>
               </button>
@@ -369,45 +409,45 @@ export function Header() {
                   }`}
                 >
                   <span className="material-icons text-lg" aria-hidden="true">inventory_2</span>
-                  <span className="text-sm font-medium">Tous les Produits</span>
+                  <span className="text-sm font-medium">{t.allProducts}</span>
                 </Link>
 
                 {/* Categories Submenu */}
                 <div className="ml-3 pl-3 border-l border-white/10 mt-1 mb-2 flex flex-col gap-0.5">
                   <Link
-                    href="/produits?categorie=chicha"
+                    href="/produits/chichas"
                     onClick={handleNavClick}
                     className="px-3 py-1.5 text-xs text-text-muted hover:text-primary transition-colors rounded-lg hover:bg-white/5"
                   >
-                    {categoryLabels.chicha}
+                    {getCategoryLabel("chicha", locale)}
                   </Link>
                   <Link
-                    href="/produits?categorie=bol"
+                    href="/produits/bols"
                     onClick={handleNavClick}
                     className="px-3 py-1.5 text-xs text-text-muted hover:text-primary transition-colors rounded-lg hover:bg-white/5"
                   >
-                    {categoryLabels.bol}
+                    {getCategoryLabel("bol", locale)}
                   </Link>
                   <Link
-                    href="/produits?categorie=tuyau"
+                    href="/produits/tuyaux"
                     onClick={handleNavClick}
                     className="px-3 py-1.5 text-xs text-text-muted hover:text-primary transition-colors rounded-lg hover:bg-white/5"
                   >
-                    {categoryLabels.tuyau}
+                    {getCategoryLabel("tuyau", locale)}
                   </Link>
                   <Link
-                    href="/produits?categorie=charbon"
+                    href="/produits/charbons"
                     onClick={handleNavClick}
                     className="px-3 py-1.5 text-xs text-text-muted hover:text-primary transition-colors rounded-lg hover:bg-white/5"
                   >
-                    {categoryLabels.charbon}
+                    {getCategoryLabel("charbon", locale)}
                   </Link>
                   <Link
-                    href="/produits?categorie=accessoire"
+                    href="/produits/accessoires"
                     onClick={handleNavClick}
                     className="px-3 py-1.5 text-xs text-text-muted hover:text-primary transition-colors rounded-lg hover:bg-white/5"
                   >
-                    {categoryLabels.accessoire}
+                    {getCategoryLabel("accessoire", locale)}
                   </Link>
                 </div>
 
@@ -441,7 +481,7 @@ export function Header() {
                   >
                     <span className="material-icons text-lg" aria-hidden="true">compare</span>
                     <div className="flex items-center gap-2 flex-1">
-                      <span className="text-sm font-medium">Comparer</span>
+                      <span className="text-sm font-medium">{t.compare}</span>
                       <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">
                         {comparisonItems.length}
                       </span>
@@ -479,7 +519,7 @@ export function Header() {
                   }`}
                 >
                   <span className="material-icons text-lg" aria-hidden="true">shopping_cart</span>
-                  <span className="text-sm font-medium">Panier</span>
+                  <span className="text-sm font-medium">{t.cart}</span>
                 </Link>
               </div>
             </motion.nav>

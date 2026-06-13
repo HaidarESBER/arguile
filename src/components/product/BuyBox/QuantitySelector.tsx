@@ -2,6 +2,26 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    quantityLabel: "Quantité:",
+    decreaseAria: "Diminuer la quantité",
+    quantityAria: "Quantité",
+    increaseAria: "Augmenter la quantité",
+    maxAvailable: (n: number) => `Maximum ${n} disponible${n > 1 ? "s" : ""}`,
+    onlyLeft: (n: number) => `Plus que ${n} en stock`,
+  },
+  en: {
+    quantityLabel: "Quantity:",
+    decreaseAria: "Decrease quantity",
+    quantityAria: "Quantity",
+    increaseAria: "Increase quantity",
+    maxAvailable: (n: number) => `Maximum ${n} available`,
+    onlyLeft: (n: number) => `Only ${n} left in stock`,
+  },
+} as const;
 
 interface QuantitySelectorProps {
   quantity: number;
@@ -23,6 +43,8 @@ export function QuantitySelector({
   stockLevel,
   disabled = false,
 }: QuantitySelectorProps) {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const [showMaxWarning, setShowMaxWarning] = useState(false);
 
   // Calculate actual max quantity based on stock
@@ -64,13 +86,13 @@ export function QuantitySelector({
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-4">
-        <span className="text-sm text-muted">Quantité:</span>
+        <span className="text-sm text-muted">{t.quantityLabel}</span>
         <div className="flex items-center gap-2">
           <button
             onClick={handleDecrease}
             disabled={quantity <= 1 || disabled}
             className="w-10 h-10 flex items-center justify-center border border-primary rounded-[--radius-button] text-primary hover:bg-primary hover:text-background transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="Diminuer la quantité"
+            aria-label={t.decreaseAria}
           >
             <span className="text-lg leading-none">-</span>
           </button>
@@ -83,14 +105,14 @@ export function QuantitySelector({
             min={1}
             max={actualMax}
             className="w-12 text-center font-medium text-primary text-lg bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-accent rounded px-1 disabled:opacity-50"
-            aria-label="Quantité"
+            aria-label={t.quantityAria}
           />
 
           <button
             onClick={handleIncrease}
             disabled={isAtMax || disabled}
             className="w-10 h-10 flex items-center justify-center border border-primary rounded-[--radius-button] text-primary hover:bg-primary hover:text-background transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="Augmenter la quantité"
+            aria-label={t.increaseAria}
           >
             <span className="text-lg leading-none">+</span>
           </button>
@@ -120,7 +142,7 @@ export function QuantitySelector({
                 d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
               />
             </svg>
-            Maximum {stockLevel} disponible{stockLevel > 1 ? "s" : ""}
+            {t.maxAvailable(stockLevel)}
           </motion.div>
         )}
 
@@ -145,7 +167,7 @@ export function QuantitySelector({
                 d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            Plus que {stockLevel} en stock
+            {t.onlyLeft(stockLevel)}
           </motion.div>
         )}
       </AnimatePresence>

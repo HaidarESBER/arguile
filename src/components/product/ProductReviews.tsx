@@ -10,6 +10,69 @@ import {
   ProductRatingStats,
   formatRelativeDate,
 } from "@/data/reviews";
+import { useLocale } from "@/contexts/LocaleContext";
+
+function formatRelativeDateEn(isoDate: string): string {
+  const date = new Date(isoDate);
+  const now = new Date();
+  const diffInMs = now.getTime() - date.getTime();
+  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+  if (diffInDays === 0) {
+    return "Today";
+  } else if (diffInDays === 1) {
+    return "Yesterday";
+  } else if (diffInDays < 7) {
+    return `${diffInDays} days ago`;
+  } else if (diffInDays < 30) {
+    const weeks = Math.floor(diffInDays / 7);
+    return `${weeks} week${weeks > 1 ? "s" : ""} ago`;
+  } else if (diffInDays < 365) {
+    const months = Math.floor(diffInDays / 30);
+    return `${months} month${months > 1 ? "s" : ""} ago`;
+  } else {
+    const years = Math.floor(diffInDays / 365);
+    return `${years} year${years > 1 ? "s" : ""} ago`;
+  }
+}
+
+const STRINGS = {
+  fr: {
+    noReviews: "Aucun avis pour le moment. Soyez le premier à donner votre avis !",
+    writeReview: "Écrire un avis",
+    basedOn: (count: number) => `Basé sur ${count} avis`,
+    verifiedPurchase: "Achat vérifié",
+    customerPhotoN: (n: number) => `Photo client ${n}`,
+    customerPhoto: "Photo client",
+    viewAllReviews: (count: number) => `Voir tous les avis (${count})`,
+    allReviews: (count: number) => `Tous les avis (${count})`,
+    close: "Fermer",
+    mostRelevant: "Plus pertinents",
+    mostRecent: "Plus récents",
+    highestRated: "Meilleures notes",
+    lowestRated: "Notes les plus basses",
+    viewMore: "Voir plus",
+    relativeDate: (isoDate: string) => formatRelativeDate(isoDate),
+  },
+  en: {
+    noReviews: "No reviews yet. Be the first to leave a review!",
+    writeReview: "Write a review",
+    basedOn: (count: number) =>
+      `Based on ${count} review${count > 1 ? "s" : ""}`,
+    verifiedPurchase: "Verified purchase",
+    customerPhotoN: (n: number) => `Customer photo ${n}`,
+    customerPhoto: "Customer photo",
+    viewAllReviews: (count: number) => `View all reviews (${count})`,
+    allReviews: (count: number) => `All reviews (${count})`,
+    close: "Close",
+    mostRelevant: "Most relevant",
+    mostRecent: "Most recent",
+    highestRated: "Highest rated",
+    lowestRated: "Lowest rated",
+    viewMore: "View more",
+    relativeDate: (isoDate: string) => formatRelativeDateEn(isoDate),
+  },
+} as const;
 
 interface ProductReviewsProps {
   reviews: Review[];
@@ -40,6 +103,8 @@ export function ProductReviews({ reviews, stats }: ProductReviewsProps) {
   const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [modalDisplayCount, setModalDisplayCount] = useState(MODAL_REVIEWS_PER_PAGE);
   const router = useRouter();
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
 
   // Sort reviews based on selected option
   const sortedReviews = [...reviews].sort((a, b) => {
@@ -63,12 +128,12 @@ export function ProductReviews({ reviews, stats }: ProductReviewsProps) {
   if (!stats || reviews.length === 0) {
     return (
       <div>
-        <p className="text-muted mb-4">Aucun avis pour le moment. Soyez le premier à donner votre avis !</p>
+        <p className="text-muted mb-4">{t.noReviews}</p>
         <button
           onClick={() => setShowForm(true)}
           className="px-6 py-3 bg-primary text-background rounded-[--radius-button] hover:bg-accent hover:text-primary transition-colors"
         >
-          Écrire un avis
+          {t.writeReview}
         </button>
 
         {/* Review form */}
@@ -110,7 +175,7 @@ export function ProductReviews({ reviews, stats }: ProductReviewsProps) {
           </div>
           <StarRating rating={stats.averageRating} size="lg" />
           <p className="text-sm text-muted mt-2">
-            Basé sur {stats.totalReviews} avis
+            {t.basedOn(stats.totalReviews)}
           </p>
         </div>
 
@@ -147,7 +212,7 @@ export function ProductReviews({ reviews, stats }: ProductReviewsProps) {
           onClick={() => setShowForm(true)}
           className="px-6 py-3 bg-primary text-background rounded-[--radius-button] hover:bg-accent hover:text-primary transition-colors"
         >
-          Écrire un avis
+          {t.writeReview}
         </button>
       </div>
 
@@ -201,14 +266,14 @@ export function ProductReviews({ reviews, stats }: ProductReviewsProps) {
                           clipRule="evenodd"
                         />
                       </svg>
-                      Achat vérifié
+                      {t.verifiedPurchase}
                     </span>
                   )}
                 </div>
                 <StarRating rating={review.rating} size="sm" />
               </div>
               <span className="text-sm text-muted">
-                {formatRelativeDate(review.date)}
+                {t.relativeDate(review.date)}
               </span>
             </div>
 
@@ -226,7 +291,7 @@ export function ProductReviews({ reviews, stats }: ProductReviewsProps) {
                   >
                     <img
                       src={photo}
-                      alt={`Photo client ${photoIdx + 1}`}
+                      alt={t.customerPhotoN(photoIdx + 1)}
                       className="w-20 h-20 object-cover rounded-lg border border-background-secondary hover:border-accent transition-all cursor-pointer shadow-sm hover:shadow-md"
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = 'none';
@@ -247,7 +312,7 @@ export function ProductReviews({ reviews, stats }: ProductReviewsProps) {
             onClick={() => setShowAllReviews(true)}
             className="px-6 py-3 border border-primary text-primary rounded-[--radius-button] hover:bg-primary hover:text-background transition-colors"
           >
-            Voir tous les avis ({reviews.length})
+            {t.viewAllReviews(reviews.length)}
           </button>
         </div>
       )}
@@ -275,12 +340,12 @@ export function ProductReviews({ reviews, stats }: ProductReviewsProps) {
               <div className="sticky top-0 bg-background border-b border-border/30 rounded-t-xl p-6 z-10">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-heading text-2xl text-primary font-light">
-                    Tous les avis ({reviews.length})
+                    {t.allReviews(reviews.length)}
                   </h3>
                   <button
                     onClick={() => setShowAllReviews(false)}
                     className="w-10 h-10 flex items-center justify-center text-muted hover:text-primary transition-colors rounded-full hover:bg-background-secondary"
-                    aria-label="Fermer"
+                    aria-label={t.close}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -309,7 +374,7 @@ export function ProductReviews({ reviews, stats }: ProductReviewsProps) {
                         : 'bg-background-secondary text-muted hover:bg-background-secondary/70'
                     }`}
                   >
-                    Plus pertinents
+                    {t.mostRelevant}
                   </button>
                   <button
                     onClick={() => setSortBy('recent')}
@@ -319,7 +384,7 @@ export function ProductReviews({ reviews, stats }: ProductReviewsProps) {
                         : 'bg-background-secondary text-muted hover:bg-background-secondary/70'
                     }`}
                   >
-                    Plus récents
+                    {t.mostRecent}
                   </button>
                   <button
                     onClick={() => setSortBy('highest')}
@@ -329,7 +394,7 @@ export function ProductReviews({ reviews, stats }: ProductReviewsProps) {
                         : 'bg-background-secondary text-muted hover:bg-background-secondary/70'
                     }`}
                   >
-                    Meilleures notes
+                    {t.highestRated}
                   </button>
                   <button
                     onClick={() => setSortBy('lowest')}
@@ -339,7 +404,7 @@ export function ProductReviews({ reviews, stats }: ProductReviewsProps) {
                         : 'bg-background-secondary text-muted hover:bg-background-secondary/70'
                     }`}
                   >
-                    Notes les plus basses
+                    {t.lowestRated}
                   </button>
                 </div>
               </div>
@@ -373,14 +438,14 @@ export function ProductReviews({ reviews, stats }: ProductReviewsProps) {
                                     clipRule="evenodd"
                                   />
                                 </svg>
-                                Achat vérifié
+                                {t.verifiedPurchase}
                               </span>
                             )}
                           </div>
                           <StarRating rating={review.rating} size="sm" />
                         </div>
                         <span className="text-sm text-muted">
-                          {formatRelativeDate(review.date)}
+                          {t.relativeDate(review.date)}
                         </span>
                       </div>
 
@@ -398,7 +463,7 @@ export function ProductReviews({ reviews, stats }: ProductReviewsProps) {
                             >
                               <img
                                 src={photo}
-                                alt={`Photo client ${photoIdx + 1}`}
+                                alt={t.customerPhotoN(photoIdx + 1)}
                                 className="w-20 h-20 object-cover rounded-lg border border-background-secondary hover:border-accent transition-all cursor-pointer shadow-sm hover:shadow-md"
                                 onError={(e) => {
                                   (e.target as HTMLImageElement).style.display = 'none';
@@ -419,7 +484,7 @@ export function ProductReviews({ reviews, stats }: ProductReviewsProps) {
                       onClick={loadMoreInModal}
                       className="px-6 py-3 border border-primary text-primary rounded-[--radius-button] hover:bg-primary hover:text-background transition-colors"
                     >
-                      Voir plus
+                      {t.viewMore}
                     </button>
                   </div>
                 )}
@@ -444,7 +509,7 @@ export function ProductReviews({ reviews, stats }: ProductReviewsProps) {
             <button
               onClick={() => setSelectedImage(null)}
               className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center text-background hover:text-accent transition-colors z-10 bg-background/10 rounded-full hover:bg-background/20"
-              aria-label="Fermer"
+              aria-label={t.close}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -473,7 +538,7 @@ export function ProductReviews({ reviews, stats }: ProductReviewsProps) {
             >
               <img
                 src={selectedImage}
-                alt="Photo client"
+                alt={t.customerPhoto}
                 className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
               />
             </motion.div>

@@ -2,6 +2,20 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ShippingAddress, europeanCountries, EuropeanCountry } from "@/types/checkout";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    addressLabel: "Adresse *",
+    placeholder: "123 Rue de la Paix",
+    suggestionsHint: "Commencez à taper pour voir les suggestions d'adresses",
+  },
+  en: {
+    addressLabel: "Address *",
+    placeholder: "123 High Street",
+    suggestionsHint: "Start typing to see address suggestions",
+  },
+} as const;
 
 interface AddressAutocompleteProps {
   onAddressSelect: (address: Partial<ShippingAddress>) => void;
@@ -22,6 +36,8 @@ export function AddressAutocomplete({
   onAddressChange,
   error,
 }: AddressAutocompleteProps) {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -131,7 +147,7 @@ export function AddressAutocomplete({
         htmlFor="address"
         className="block text-sm font-medium text-primary mb-1"
       >
-        Adresse *
+        {t.addressLabel}
       </label>
       <input
         ref={inputRef}
@@ -144,13 +160,13 @@ export function AddressAutocomplete({
             ? "border-red-500 focus:ring-red-500"
             : "border-background-secondary focus:ring-accent"
         } bg-background text-primary focus:outline-none focus:ring-2`}
-        placeholder="123 Rue de la Paix"
+        placeholder={t.placeholder}
         autoComplete="off"
       />
       {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
       {isLoaded && (
         <p className="mt-1 text-xs text-muted">
-          Commencez à taper pour voir les suggestions d&apos;adresses
+          {t.suggestionsHint}
         </p>
       )}
     </div>

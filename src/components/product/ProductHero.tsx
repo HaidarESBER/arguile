@@ -1,6 +1,22 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    collection: "Collection",
+    premium: "Premium",
+    subtitle: "Chichas et accessoires de qualité supérieure",
+    explore: "Explorer",
+  },
+  en: {
+    collection: "Collection",
+    premium: "Premium",
+    subtitle: "Premium hookahs and accessories",
+    explore: "Explore",
+  },
+} as const;
 
 /**
  * Hero section for products page
@@ -12,6 +28,8 @@ import { motion } from "framer-motion";
  * - Stats or highlights
  */
 export function ProductHero() {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-primary via-primary/95 to-accent/20 rounded-[--radius-card] mb-12">
       {/* Background pattern */}
@@ -31,7 +49,7 @@ export function ProductHero() {
               transition={{ duration: 0.4 }}
               className="font-heading text-xl md:text-2xl text-background mb-1"
             >
-              Collection <span className="text-accent italic">Premium</span>
+              {t.collection} <span className="text-accent italic">{t.premium}</span>
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 10 }}
@@ -39,7 +57,7 @@ export function ProductHero() {
               transition={{ duration: 0.4, delay: 0.1 }}
               className="text-background/80 text-xs md:text-sm"
             >
-              Chichas et accessoires de qualité supérieure
+              {t.subtitle}
             </motion.p>
           </div>
 
@@ -51,7 +69,7 @@ export function ProductHero() {
             href="#products"
             className="inline-flex items-center justify-center px-5 py-2 text-sm font-medium bg-background text-primary rounded-[--radius-button] hover:bg-accent hover:text-background transition-colors whitespace-nowrap"
           >
-            Explorer
+            {t.explore}
           </motion.a>
         </div>
       </div>

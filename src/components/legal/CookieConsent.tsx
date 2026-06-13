@@ -3,6 +3,54 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    ariaLabel: "Gestion des cookies",
+    title: "Cookies",
+    intro:
+      "Nous utilisons des cookies pour améliorer votre expérience. Vous pouvez accepter, refuser ou personnaliser votre choix.",
+    essentialLabel: "Cookies essentiels",
+    essentialRequired: "(obligatoires)",
+    essentialDesc:
+      "Nécessaires au fonctionnement du site (panier, authentification, préférences).",
+    analyticsLabel: "Cookies analytiques",
+    analyticsDesc:
+      "Nous aident à comprendre comment vous utilisez le site pour l'améliorer (Google Analytics, Microsoft Clarity).",
+    marketingLabel: "Cookies marketing",
+    marketingDesc:
+      "Permettent de vous proposer des publicités pertinentes et de mesurer l'efficacité de nos campagnes (TikTok Pixel, Meta Pixel).",
+    back: "Retour",
+    reject: "Refuser",
+    save: "Enregistrer",
+    customize: "Personnaliser",
+    accept: "Accepter",
+    privacyPolicy: "Politique de confidentialité",
+  },
+  en: {
+    ariaLabel: "Cookie settings",
+    title: "Cookies",
+    intro:
+      "We use cookies to improve your experience. You can accept, decline or customize your choice.",
+    essentialLabel: "Essential cookies",
+    essentialRequired: "(required)",
+    essentialDesc:
+      "Necessary for the site to work (cart, authentication, preferences).",
+    analyticsLabel: "Analytics cookies",
+    analyticsDesc:
+      "Help us understand how you use the site so we can improve it (Google Analytics, Microsoft Clarity).",
+    marketingLabel: "Marketing cookies",
+    marketingDesc:
+      "Allow us to show you relevant ads and measure the effectiveness of our campaigns (TikTok Pixel, Meta Pixel).",
+    back: "Back",
+    reject: "Decline",
+    save: "Save",
+    customize: "Customize",
+    accept: "Accept",
+    privacyPolicy: "Privacy policy",
+  },
+} as const;
 
 /**
  * Cookie consent banner - RGPD/GDPR compliant
@@ -24,6 +72,8 @@ interface CookiePreferences {
 }
 
 export function CookieConsent() {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const [isVisible, setIsVisible] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [hadNonEssentialConsent, setHadNonEssentialConsent] = useState(false);
@@ -119,7 +169,7 @@ export function CookieConsent() {
         transition={{ duration: 0.3, ease: "easeOut" }}
         className="fixed bottom-4 right-4 left-4 sm:left-auto z-[9999] sm:max-w-md"
         role="dialog"
-        aria-label="Gestion des cookies"
+        aria-label={t.ariaLabel}
       >
         <div className="bg-background border border-primary/20 rounded-lg shadow-xl overflow-hidden">
           {/* Header */}
@@ -130,11 +180,10 @@ export function CookieConsent() {
               </div>
               <div className="flex-1">
                 <h3 className="text-base font-heading font-bold text-primary mb-1">
-                  Cookies
+                  {t.title}
                 </h3>
                 <p className="text-sm text-primary/70 leading-snug">
-                  Nous utilisons des cookies pour améliorer votre expérience.
-                  Vous pouvez accepter, refuser ou personnaliser votre choix.
+                  {t.intro}
                 </p>
               </div>
             </div>
@@ -158,10 +207,10 @@ export function CookieConsent() {
                   />
                   <div className="flex-1">
                     <label htmlFor="essential" className="text-sm font-semibold text-primary block mb-1">
-                      Cookies essentiels <span className="text-sm font-normal text-primary/50">(obligatoires)</span>
+                      {t.essentialLabel} <span className="text-sm font-normal text-primary/50">{t.essentialRequired}</span>
                     </label>
                     <p className="text-sm text-primary/60">
-                      Nécessaires au fonctionnement du site (panier, authentification, préférences).
+                      {t.essentialDesc}
                     </p>
                   </div>
                 </div>
@@ -177,11 +226,10 @@ export function CookieConsent() {
                   />
                   <div className="flex-1">
                     <label htmlFor="analytics" className="text-sm font-semibold text-primary block mb-1 cursor-pointer">
-                      Cookies analytiques
+                      {t.analyticsLabel}
                     </label>
                     <p className="text-sm text-primary/60">
-                      Nous aident à comprendre comment vous utilisez le site pour l&apos;améliorer
-                      (Google Analytics, Microsoft Clarity).
+                      {t.analyticsDesc}
                     </p>
                   </div>
                 </div>
@@ -197,11 +245,10 @@ export function CookieConsent() {
                   />
                   <div className="flex-1">
                     <label htmlFor="marketing" className="text-sm font-semibold text-primary block mb-1 cursor-pointer">
-                      Cookies marketing
+                      {t.marketingLabel}
                     </label>
                     <p className="text-sm text-primary/60">
-                      Permettent de vous proposer des publicités pertinentes et de mesurer
-                      l&apos;efficacité de nos campagnes (TikTok Pixel, Meta Pixel).
+                      {t.marketingDesc}
                     </p>
                   </div>
                 </div>
@@ -216,19 +263,19 @@ export function CookieConsent() {
                     onClick={() => setShowDetails(false)}
                     className="flex-1 px-4 py-2.5 min-h-[44px] text-sm text-primary hover:bg-primary/5 rounded-md transition-colors"
                   >
-                    Retour
+                    {t.back}
                   </button>
                   <button
                     onClick={handleRejectAll}
                     className="flex-1 px-4 py-2.5 min-h-[44px] text-sm border border-primary/20 text-primary rounded-md hover:bg-primary/5 transition-all"
                   >
-                    Refuser
+                    {t.reject}
                   </button>
                   <button
                     onClick={handleSaveCustom}
                     className="flex-1 px-4 py-2.5 min-h-[44px] text-sm bg-primary text-background rounded-md hover:bg-accent transition-colors font-medium"
                   >
-                    Enregistrer
+                    {t.save}
                   </button>
                 </>
               ) : (
@@ -237,19 +284,19 @@ export function CookieConsent() {
                     onClick={() => setShowDetails(true)}
                     className="flex-1 px-4 py-2.5 min-h-[44px] text-sm text-primary hover:bg-primary/5 rounded-md transition-colors"
                   >
-                    Personnaliser
+                    {t.customize}
                   </button>
                   <button
                     onClick={handleRejectAll}
                     className="flex-1 px-4 py-2.5 min-h-[44px] text-sm border border-primary/20 text-primary rounded-md hover:bg-primary/5 transition-all"
                   >
-                    Refuser
+                    {t.reject}
                   </button>
                   <button
                     onClick={handleAcceptAll}
                     className="flex-1 px-4 py-2.5 min-h-[44px] text-sm bg-primary text-background rounded-md hover:bg-accent transition-colors font-medium"
                   >
-                    Accepter
+                    {t.accept}
                   </button>
                 </>
               )}
@@ -258,7 +305,7 @@ export function CookieConsent() {
             {/* Link to privacy policy */}
             <p className="mt-3 text-sm text-primary/60 text-center">
               <Link href="/mentions-legales" className="underline hover:text-primary inline-block py-1">
-                Politique de confidentialité
+                {t.privacyPolicy}
               </Link>
             </p>
           </div>

@@ -6,6 +6,7 @@ import {
   EUROPEAN_COUNTRIES,
   detectUserCountry,
   getCountryByCode,
+  getCountryName,
 } from "@/data/countries";
 import {
   calculateShippingCost,
@@ -15,6 +16,28 @@ import {
   ShippingMethod,
   ShippingRate,
 } from "@/lib/shipping";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    heading: "Livraison",
+    shippingTo: "Livraison vers",
+    accordingToAddress: "(selon l'adresse saisie)",
+    countryLabel: "Pays de livraison *",
+    methodLabel: "Mode de livraison *",
+    standard: "Standard",
+    express: "Express",
+  },
+  en: {
+    heading: "Shipping",
+    shippingTo: "Shipping to",
+    accordingToAddress: "(based on the address entered)",
+    countryLabel: "Shipping country *",
+    methodLabel: "Shipping method *",
+    standard: "Standard",
+    express: "Express",
+  },
+} as const;
 
 interface ShippingCalculatorProps {
   cartTotalCents: number;
@@ -45,6 +68,8 @@ export function ShippingCalculator({
   onShippingMethodChange,
   countryCode,
 }: ShippingCalculatorProps) {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const [selectedCountryCode, setSelectedCountryCode] = useState<string>("FR");
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("standard");
   const [shippingRate, setShippingRate] = useState<ShippingRate | null>(null);
@@ -68,7 +93,7 @@ export function ShippingCalculator({
     if (country) {
       // Pass the cart subtotal so free shipping (France ≥ threshold) shows
       // here exactly as the server will charge it.
-      const rate = calculateShippingCost(country.region, shippingMethod, cartTotalCents);
+      const rate = calculateShippingCost(country.region, shippingMethod, cartTotalCents, locale);
       // Rate depends on the country detected client-side; computing it during render would change SSR output (hydration mismatch)
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setShippingRate(rate);
@@ -77,7 +102,7 @@ export function ShippingCalculator({
         onShippingMethodChange(shippingMethod);
       }
     }
-  }, [selectedCountryCode, shippingMethod, cartTotalCents, onShippingCostChange, onShippingMethodChange]);
+  }, [selectedCountryCode, shippingMethod, cartTotalCents, locale, onShippingCostChange, onShippingMethodChange]);
 
   const selectedCountry = getCountryByCode(selectedCountryCode);
   const showCustomsWarning =
@@ -100,15 +125,15 @@ export function ShippingCalculator({
       transition={{ duration: 0.4, delay: 0.2 }}
       className="space-y-4"
     >
-      <h2 className="font-heading text-xl text-primary">Livraison</h2>
+      <h2 className="font-heading text-xl text-text">{t.heading}</h2>
 
       {/* Country driven by the shipping address (controlled mode) */}
       {countryCode && selectedCountry && (
         <p className="text-sm text-muted flex items-center gap-2">
           <span className="text-lg">{selectedCountry.flag}</span>
           <span>
-            Livraison vers <span className="text-primary font-medium">{selectedCountry.name}</span>{" "}
-            (selon l&apos;adresse saisie)
+            {t.shippingTo} <span className="text-text font-medium">{getCountryName(selectedCountry, locale)}</span>{" "}
+            {t.accordingToAddress}
           </span>
         </p>
       )}
@@ -118,21 +143,21 @@ export function ShippingCalculator({
       <div>
         <label
           htmlFor="shipping-country"
-          className="block text-sm font-medium text-primary mb-1"
+          className="block text-sm font-medium text-text mb-1"
         >
-          Pays de livraison *
+          {t.countryLabel}
         </label>
         <div className="relative">
           <button
             type="button"
             onClick={() => setIsOpen(!isOpen)}
-            className="w-full px-4 py-3 rounded-[--radius-button] border border-background-secondary bg-background text-primary focus:outline-none focus:ring-2 focus:ring-accent flex items-center justify-between"
+            className="w-full px-4 py-3 rounded-[--radius-button] border border-background-secondary bg-background text-text focus:outline-none focus:ring-2 focus:ring-accent flex items-center justify-between"
           >
             <span className="flex items-center gap-2">
               {selectedCountry && (
                 <>
                   <span className="text-lg">{selectedCountry.flag}</span>
-                  <span>{selectedCountry.name}</span>
+                  <span>{getCountryName(selectedCountry, locale)}</span>
                 </>
               )}
             </span>
@@ -169,7 +194,7 @@ export function ShippingCalculator({
                     className="w-full px-4 py-2 text-left hover:bg-background-secondary transition-colors flex items-center gap-2"
                   >
                     <span className="text-lg">{country.flag}</span>
-                    <span className="text-primary">{country.name}</span>
+                    <span className="text-text">{getCountryName(country, locale)}</span>
                   </button>
                 ))}
               </motion.div>
@@ -181,8 +206,8 @@ export function ShippingCalculator({
 
       {/* Shipping method selection */}
       <div>
-        <label className="block text-sm font-medium text-primary mb-2">
-          Mode de livraison *
+        <label className="block text-sm font-medium text-text mb-2">
+          {t.methodLabel}
         </label>
         <div className="space-y-2">
           {/* Standard shipping */}
@@ -216,7 +241,7 @@ export function ShippingCalculator({
                     <circle cx="17" cy="18" r="2" />
                     <circle cx="7" cy="18" r="2" />
                   </svg>
-                  <span className="font-medium text-primary">Standard</span>
+                  <span className="font-medium text-text">{t.standard}</span>
                 </div>
                 {shippingRate && shippingMethod === "standard" && (
                   <motion.span
@@ -264,7 +289,7 @@ export function ShippingCalculator({
                   >
                     <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
                   </svg>
-                  <span className="font-medium text-primary">Express</span>
+                  <span className="font-medium text-text">{t.express}</span>
                 </div>
                 {shippingRate && shippingMethod === "express" && (
                   <motion.span
@@ -313,7 +338,7 @@ export function ShippingCalculator({
               <line x1="12" y1="9" x2="12" y2="13" />
               <line x1="12" y1="17" x2="12.01" y2="17" />
             </svg>
-            <p className="text-xs text-yellow-800">{getCustomsWarningMessage()}</p>
+            <p className="text-xs text-yellow-800">{getCustomsWarningMessage(locale)}</p>
           </motion.div>
         )}
       </AnimatePresence>

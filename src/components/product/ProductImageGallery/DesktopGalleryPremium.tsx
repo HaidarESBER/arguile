@@ -4,7 +4,17 @@ import { memo, useState, useEffect } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { ZoomIn, ChevronLeft, ChevronRight } from "lucide-react";
-import { ProductCategory, categoryLabels } from "@/types/product";
+import { ProductCategory, getCategoryLabel } from "@/types/product";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    clickToZoom: "Cliquer pour agrandir",
+  },
+  en: {
+    clickToZoom: "Click to zoom",
+  },
+} as const;
 
 interface DesktopGalleryPremiumProps {
   images: string[];
@@ -31,6 +41,8 @@ export const DesktopGalleryPremium = memo(function DesktopGalleryPremium({
   hasDiscount,
   discountPercentage,
 }: DesktopGalleryPremiumProps) {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const MAX_VISIBLE_THUMBNAILS = 4;
   const [showAllThumbnails, setShowAllThumbnails] = useState(false);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
@@ -82,7 +94,7 @@ export const DesktopGalleryPremium = memo(function DesktopGalleryPremium({
           className="absolute top-3 left-3 z-20"
         >
           <span className="inline-flex text-xs tracking-widest uppercase text-accent font-semibold bg-background/95 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-lg border border-accent/20">
-            {categoryLabels[category]}
+            {getCategoryLabel(category, locale)}
           </span>
         </motion.div>
 
@@ -145,7 +157,7 @@ export const DesktopGalleryPremium = memo(function DesktopGalleryPremium({
             >
               <ZoomIn className="w-4 h-4 text-primary" />
               <span className="text-xs font-medium text-primary">
-                Cliquer pour agrandir
+                {t.clickToZoom}
               </span>
             </motion.div>
           </div>

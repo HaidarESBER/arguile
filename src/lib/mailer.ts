@@ -16,7 +16,7 @@ import type { ReactElement } from "react";
  * (Senders & Domains), otherwise sends are rejected.
  */
 
-const DEFAULT_FROM = process.env.EMAIL_FROM || "Nuage <commandes@nuage.fr>";
+const DEFAULT_FROM = process.env.EMAIL_FROM || "Nuage <commandes@chichanuage.com>";
 const MARKETING_FROM = process.env.EMAIL_FROM_MARKETING || DEFAULT_FROM;
 
 export function getFromAddress(kind: "transactional" | "marketing"): string {
@@ -74,6 +74,35 @@ interface SendEmailOptions {
   replyTo?: string;
   /** Extra headers, e.g. List-Unsubscribe for marketing mail */
   headers?: Record<string, string>;
+  /** Category recorded in the email log (order_confirmation, contact, …) */
+  kind?: string;
+}
+
+/**
+ * Best-effort record of a send in the email_log table. Never throws — a
+ * logging failure must not affect email delivery. No-op without Supabase.
+ */
+async function logEmail(
+  kind: string,
+  recipient: string,
+  subject: string,
+  status: "sent" | "failed",
+  error?: string
+): Promise<void> {
+  if (
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    !process.env.SUPABASE_SERVICE_ROLE_KEY
+  ) {
+    return;
+  }
+  try {
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    await createAdminClient()
+      .from("email_log")
+      .insert({ kind, recipient, subject, status, error: error ?? null });
+  } catch {
+    // swallow — logging is best-effort
+  }
 }
 
 /**
@@ -88,6 +117,9 @@ export async function sendEmail(
       error: "Email service not configured (BREVO_API_KEY or SMTP_*)",
     };
   }
+
+  const kind = options.kind || "other";
+  const recipient = Array.isArray(options.to) ? options.to.join(", ") : options.to;
 
   try {
     let html = options.html;
@@ -123,9 +155,12 @@ export async function sendEmail(
       if (!response.ok) {
         const body = await response.text();
         console.error(`Brevo API send failed (${response.status}):`, body);
-        return { success: false, error: `Brevo API ${response.status}: ${body.slice(0, 200)}` };
+        const error = `Brevo API ${response.status}: ${body.slice(0, 200)}`;
+        await logEmail(kind, recipient, options.subject, "failed", error);
+        return { success: false, error };
       }
 
+      await logEmail(kind, recipient, options.subject, "sent");
       return { success: true };
     }
 
@@ -145,12 +180,12 @@ export async function sendEmail(
       headers: options.headers,
     });
 
+    await logEmail(kind, recipient, options.subject, "sent");
     return { success: true };
   } catch (err) {
     console.error("Email send failed:", err);
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : "Email send failed",
-    };
+    const error = err instanceof Error ? err.message : "Email send failed";
+    await logEmail(kind, recipient, options.subject, "failed", error);
+    return { success: false, error };
   }
 }

@@ -12,10 +12,139 @@ import { formatPrice } from "@/types/product";
 import { formatDateLong } from "@/lib/date-utils";
 import { createClient } from "@/lib/supabase/client";
 import { LogOut } from "lucide-react";
+import { useLocale } from "@/contexts/LocaleContext";
 type TabType = "info" | "security" | "preferences" | "orders";
+
+const ORDER_STATUS_EN: Record<Order["status"], string> = {
+  pending_payment: "Awaiting payment",
+  pending: "Pending",
+  confirmed: "Confirmed",
+  processing: "Being prepared",
+  shipped: "Shipped",
+  delivered: "Delivered",
+  cancelled: "Cancelled",
+  refunded: "Refunded",
+};
+
+const STRINGS = {
+  fr: {
+    loading: "Chargement...",
+    title: "Mon Profil",
+    subtitle: "Gérez vos informations personnelles",
+    profileFetchError: "Erreur lors de la récupération du profil",
+    profileLoadError: "Erreur lors du chargement du profil",
+    updateError: "Erreur lors de la mise à jour",
+    genericError: "Une erreur est survenue",
+    profileUpdated: "Profil mis à jour avec succès",
+    passwordsMismatch: "Les mots de passe ne correspondent pas",
+    passwordChangeError: "Erreur lors du changement de mot de passe",
+    passwordChanged: "Mot de passe modifié avec succès",
+    preferencesUpdated: "Préférences mises à jour avec succès",
+    logoutConfirm: "Êtes-vous sûr de vouloir vous déconnecter ?",
+    logoutError: "Erreur lors de la déconnexion",
+    tabOrders: "Commandes",
+    tabInfo: "Informations",
+    tabSecurity: "Sécurité",
+    tabPreferences: "Préférences",
+    noOrdersTitle: "Aucune commande",
+    noOrdersText: "Vous n'avez pas encore passé de commande",
+    discoverProducts: "Découvrir nos produits",
+    order: "Commande",
+    track: "Suivre",
+    quantity: "Quantité",
+    subtotal: "Sous-total",
+    shipping: "Livraison",
+    total: "Total",
+    emailLabel: "Email",
+    emailNotEditable: "L'email ne peut pas être modifié",
+    firstNameLabel: "Prénom",
+    lastNameLabel: "Nom",
+    phoneLabel: "Téléphone",
+    saving: "Enregistrement...",
+    save: "Enregistrer",
+    changePassword: "Changer le mot de passe",
+    currentPassword: "Mot de passe actuel",
+    newPassword: "Nouveau mot de passe",
+    passwordHint: "Minimum 12 caractères, avec majuscule, minuscule, chiffre et caractère spécial",
+    confirmNewPassword: "Confirmer le nouveau mot de passe",
+    changing: "Modification...",
+    changePasswordSubmit: "Modifier le mot de passe",
+    logoutTitle: "Déconnexion",
+    logoutText: "Déconnectez-vous de votre compte sur cet appareil.",
+    logout: "Se déconnecter",
+    prefOrderUpdates: "Notifications de commande",
+    prefOrderUpdatesText: "Recevoir des emails sur l'état de vos commandes (confirmation, expédition, livraison)",
+    prefPromotions: "Promotions et offres",
+    prefPromotionsText: "Recevoir nos offres spéciales et codes de réduction",
+    prefMarketing: "Newsletters et actualités",
+    prefMarketingText: "Recevoir nos newsletters avec nouveautés, conseils et tendances",
+    prefTracking: "Historique de navigation",
+    prefTrackingText: "Suivre les produits que je consulte pour personnaliser mes recommandations. Vos données sont privées et supprimées automatiquement après 90 jours.",
+    statusLabel: (status: Order["status"]) => orderStatusLabels[status],
+    orderDate: (date: string | Date) => formatDateLong(date),
+  },
+  en: {
+    loading: "Loading...",
+    title: "My Profile",
+    subtitle: "Manage your personal information",
+    profileFetchError: "Error while fetching the profile",
+    profileLoadError: "Error while loading the profile",
+    updateError: "Error while updating",
+    genericError: "An error occurred",
+    profileUpdated: "Profile updated successfully",
+    passwordsMismatch: "Passwords do not match",
+    passwordChangeError: "Error while changing the password",
+    passwordChanged: "Password changed successfully",
+    preferencesUpdated: "Preferences updated successfully",
+    logoutConfirm: "Are you sure you want to sign out?",
+    logoutError: "Error while signing out",
+    tabOrders: "Orders",
+    tabInfo: "Information",
+    tabSecurity: "Security",
+    tabPreferences: "Preferences",
+    noOrdersTitle: "No orders",
+    noOrdersText: "You have not placed any orders yet",
+    discoverProducts: "Discover our products",
+    order: "Order",
+    track: "Track",
+    quantity: "Quantity",
+    subtotal: "Subtotal",
+    shipping: "Shipping",
+    total: "Total",
+    emailLabel: "Email",
+    emailNotEditable: "The email address cannot be changed",
+    firstNameLabel: "First name",
+    lastNameLabel: "Last name",
+    phoneLabel: "Phone",
+    saving: "Saving...",
+    save: "Save",
+    changePassword: "Change password",
+    currentPassword: "Current password",
+    newPassword: "New password",
+    passwordHint: "Minimum 12 characters, with an uppercase letter, lowercase letter, digit and special character",
+    confirmNewPassword: "Confirm new password",
+    changing: "Updating...",
+    changePasswordSubmit: "Change the password",
+    logoutTitle: "Sign out",
+    logoutText: "Sign out of your account on this device.",
+    logout: "Sign out",
+    prefOrderUpdates: "Order notifications",
+    prefOrderUpdatesText: "Receive emails about the status of your orders (confirmation, shipping, delivery)",
+    prefPromotions: "Promotions and offers",
+    prefPromotionsText: "Receive our special offers and discount codes",
+    prefMarketing: "Newsletters and news",
+    prefMarketingText: "Receive our newsletters with new arrivals, tips and trends",
+    prefTracking: "Browsing history",
+    prefTrackingText: "Track the products I view to personalize my recommendations. Your data is private and automatically deleted after 90 days.",
+    statusLabel: (status: Order["status"]) => ORDER_STATUS_EN[status],
+    orderDate: (date: string | Date) => formatDateLong(date, "en"),
+  },
+} as const;
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const [activeTab, setActiveTab] = useState<TabType>("orders");
   const [user, setUser] = useState<UserSession | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -62,7 +191,7 @@ export default function ProfilePage() {
       }
 
       if (!response.ok) {
-        throw new Error(data.error || "Erreur lors de la récupération du profil");
+        throw new Error(data.error || t.profileFetchError);
       }
 
       setUser(data.user);
@@ -79,11 +208,11 @@ export default function ProfilePage() {
       );
     } catch (error) {
       console.error("Error fetching profile:", error);
-      showMessage("error", "Erreur lors du chargement du profil");
+      showMessage("error", t.profileLoadError);
     } finally {
       setIsLoading(false);
     }
-  }, [router, showMessage]);
+  }, [router, showMessage, t]);
 
   const fetchOrders = useCallback(async () => {
     if (!user) return;
@@ -166,16 +295,16 @@ export default function ProfilePage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Erreur lors de la mise à jour");
+        throw new Error(data.error || t.updateError);
       }
 
       setUser(data.user);
-      showMessage("success", "Profil mis à jour avec succès");
+      showMessage("success", t.profileUpdated);
     } catch (error) {
       console.error("Error updating profile:", error);
       showMessage(
         "error",
-        error instanceof Error ? error.message : "Une erreur est survenue"
+        error instanceof Error ? error.message : t.genericError
       );
     } finally {
       setIsSaving(false);
@@ -186,7 +315,7 @@ export default function ProfilePage() {
     e.preventDefault();
 
     if (newPassword !== confirmNewPassword) {
-      showMessage("error", "Les mots de passe ne correspondent pas");
+      showMessage("error", t.passwordsMismatch);
       return;
     }
 
@@ -206,10 +335,10 @@ export default function ProfilePage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Erreur lors du changement de mot de passe");
+        throw new Error(data.error || t.passwordChangeError);
       }
 
-      showMessage("success", "Mot de passe modifié avec succès");
+      showMessage("success", t.passwordChanged);
       setCurrentPassword("");
       setNewPassword("");
       setConfirmNewPassword("");
@@ -217,7 +346,7 @@ export default function ProfilePage() {
       console.error("Error changing password:", error);
       showMessage(
         "error",
-        error instanceof Error ? error.message : "Une erreur est survenue"
+        error instanceof Error ? error.message : t.genericError
       );
     } finally {
       setIsSaving(false);
@@ -241,16 +370,16 @@ export default function ProfilePage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Erreur lors de la mise à jour");
+        throw new Error(data.error || t.updateError);
       }
 
       setUser(data.user);
-      showMessage("success", "Préférences mises à jour avec succès");
+      showMessage("success", t.preferencesUpdated);
     } catch (error) {
       console.error("Error updating preferences:", error);
       showMessage(
         "error",
-        error instanceof Error ? error.message : "Une erreur est survenue"
+        error instanceof Error ? error.message : t.genericError
       );
     } finally {
       setIsSaving(false);
@@ -258,7 +387,7 @@ export default function ProfilePage() {
   };
 
   const handleLogout = async () => {
-    if (!confirm("Êtes-vous sûr de vouloir vous déconnecter ?")) {
+    if (!confirm(t.logoutConfirm)) {
       return;
     }
 
@@ -269,7 +398,7 @@ export default function ProfilePage() {
       router.refresh();
     } catch (error) {
       console.error("Error logging out:", error);
-      showMessage("error", "Erreur lors de la déconnexion");
+      showMessage("error", t.logoutError);
     }
   };
 
@@ -279,7 +408,7 @@ export default function ProfilePage() {
         <Container size="md">
           <div className="text-center py-12">
             <div className="animate-spin w-8 h-8 border-4 border-accent border-t-transparent rounded-full mx-auto"></div>
-            <p className="text-muted mt-4">Chargement...</p>
+            <p className="text-muted mt-4">{t.loading}</p>
           </div>
         </Container>
       </main>
@@ -292,9 +421,9 @@ export default function ProfilePage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl lg:text-4xl font-bold text-primary mb-2">
-            Mon Profil
+            {t.title}
           </h1>
-          <p className="text-muted">Gérez vos informations personnelles</p>
+          <p className="text-muted">{t.subtitle}</p>
         </div>
 
         {/* Toast Message */}
@@ -324,7 +453,7 @@ export default function ProfilePage() {
                   : "text-muted hover:text-primary"
               }`}
             >
-              Commandes
+              {t.tabOrders}
               {orders.length > 0 && (
                 <span className="ml-2 text-xs text-muted">({orders.length})</span>
               )}
@@ -337,7 +466,7 @@ export default function ProfilePage() {
                   : "text-muted hover:text-primary"
               }`}
             >
-              Informations
+              {t.tabInfo}
             </button>
             <button
               onClick={() => setActiveTab("security")}
@@ -347,7 +476,7 @@ export default function ProfilePage() {
                   : "text-muted hover:text-primary"
               }`}
             >
-              Sécurité
+              {t.tabSecurity}
             </button>
             <button
               onClick={() => setActiveTab("preferences")}
@@ -357,7 +486,7 @@ export default function ProfilePage() {
                   : "text-muted hover:text-primary"
               }`}
             >
-              Préférences
+              {t.tabPreferences}
             </button>
           </div>
 
@@ -377,16 +506,16 @@ export default function ProfilePage() {
                       </svg>
                     </div>
                     <h3 className="text-lg font-semibold text-primary mb-2">
-                      Aucune commande
+                      {t.noOrdersTitle}
                     </h3>
                     <p className="text-muted mb-6">
-                      Vous n&apos;avez pas encore passé de commande
+                      {t.noOrdersText}
                     </p>
                     <Link
                       href="/produits"
                       className="inline-block bg-accent text-background font-medium px-6 py-3 rounded-lg hover:bg-accent/90 transition-colors"
                     >
-                      Découvrir nos produits
+                      {t.discoverProducts}
                     </Link>
                   </div>
                 ) : (
@@ -404,10 +533,10 @@ export default function ProfilePage() {
                           <div className="flex flex-wrap items-start justify-between gap-4 mb-4 pb-4 border-b border-border">
                             <div>
                               <h3 className="font-semibold text-primary mb-1">
-                                Commande {order.orderNumber}
+                                {t.order} {order.orderNumber}
                               </h3>
                               <p className="text-sm text-muted">
-                                {formatDateLong(order.createdAt)}
+                                {t.orderDate(order.createdAt)}
                               </p>
                             </div>
                             <div className="flex items-center gap-3">
@@ -416,13 +545,13 @@ export default function ProfilePage() {
                                   order.status
                                 )}`}
                               >
-                                {orderStatusLabels[order.status]}
+                                {t.statusLabel(order.status)}
                               </span>
                               <Link
                                 href={`/suivi/${order.orderNumber}`}
                                 className="text-sm text-accent hover:underline font-medium"
                               >
-                                Suivre
+                                {t.track}
                               </Link>
                             </div>
                           </div>
@@ -445,7 +574,7 @@ export default function ProfilePage() {
                                     {item.productName}
                                   </p>
                                   <p className="text-sm text-muted">
-                                    Quantité: {item.quantity}
+                                    {t.quantity}: {item.quantity}
                                   </p>
                                 </div>
                                 <p className="font-medium text-primary">
@@ -458,17 +587,17 @@ export default function ProfilePage() {
                           {/* Order Total */}
                           <div className="pt-4 border-t border-border">
                             <div className="flex justify-between items-center text-sm mb-1">
-                              <span className="text-muted">Sous-total</span>
+                              <span className="text-muted">{t.subtotal}</span>
                               <span className="text-primary">{formatPrice(order.subtotal)}</span>
                             </div>
                             <div className="flex justify-between items-center text-sm mb-2">
-                              <span className="text-muted">Livraison</span>
+                              <span className="text-muted">{t.shipping}</span>
                               <span className="text-primary">
                                 {formatPrice(order.shipping)}
                               </span>
                             </div>
                             <div className="flex justify-between items-center font-semibold text-lg">
-                              <span className="text-primary">Total</span>
+                              <span className="text-primary">{t.total}</span>
                               <span className="text-accent">{formatPrice(order.total)}</span>
                             </div>
                           </div>
@@ -494,7 +623,7 @@ export default function ProfilePage() {
                     htmlFor="email"
                     className="block text-sm font-medium text-primary mb-2"
                   >
-                    Email
+                    {t.emailLabel}
                   </label>
                   <input
                     type="email"
@@ -504,7 +633,7 @@ export default function ProfilePage() {
                     className="w-full px-4 py-3 rounded-lg border border-border bg-background-secondary text-muted cursor-not-allowed"
                   />
                   <p className="mt-1 text-xs text-muted">
-                    L&apos;email ne peut pas être modifié
+                    {t.emailNotEditable}
                   </p>
                 </div>
 
@@ -514,7 +643,7 @@ export default function ProfilePage() {
                       htmlFor="firstName"
                       className="block text-sm font-medium text-primary mb-2"
                     >
-                      Prénom
+                      {t.firstNameLabel}
                     </label>
                     <input
                       type="text"
@@ -531,7 +660,7 @@ export default function ProfilePage() {
                       htmlFor="lastName"
                       className="block text-sm font-medium text-primary mb-2"
                     >
-                      Nom
+                      {t.lastNameLabel}
                     </label>
                     <input
                       type="text"
@@ -549,7 +678,7 @@ export default function ProfilePage() {
                     htmlFor="phone"
                     className="block text-sm font-medium text-primary mb-2"
                   >
-                    Téléphone
+                    {t.phoneLabel}
                   </label>
                   <input
                     type="tel"
@@ -566,7 +695,7 @@ export default function ProfilePage() {
                   disabled={isSaving}
                   className="w-full bg-accent text-background font-medium py-3 rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isSaving ? "Enregistrement..." : "Enregistrer"}
+                  {isSaving ? t.saving : t.save}
                 </button>
               </motion.form>
             )}
@@ -582,7 +711,7 @@ export default function ProfilePage() {
                 {/* Change Password Form */}
                 <form onSubmit={handleChangePassword} className="space-y-6">
                   <h3 className="text-lg font-semibold text-primary">
-                    Changer le mot de passe
+                    {t.changePassword}
                   </h3>
 
                   <div>
@@ -590,7 +719,7 @@ export default function ProfilePage() {
                       htmlFor="currentPassword"
                       className="block text-sm font-medium text-primary mb-2"
                     >
-                      Mot de passe actuel
+                      {t.currentPassword}
                     </label>
                     <input
                       type="password"
@@ -607,7 +736,7 @@ export default function ProfilePage() {
                       htmlFor="newPassword"
                       className="block text-sm font-medium text-primary mb-2"
                     >
-                      Nouveau mot de passe
+                      {t.newPassword}
                     </label>
                     <input
                       type="password"
@@ -619,8 +748,7 @@ export default function ProfilePage() {
                       required
                     />
                     <p className="mt-1 text-xs text-muted">
-                      Minimum 12 caractères, avec majuscule, minuscule, chiffre et
-                      caractère spécial
+                      {t.passwordHint}
                     </p>
                   </div>
 
@@ -629,7 +757,7 @@ export default function ProfilePage() {
                       htmlFor="confirmNewPassword"
                       className="block text-sm font-medium text-primary mb-2"
                     >
-                      Confirmer le nouveau mot de passe
+                      {t.confirmNewPassword}
                     </label>
                     <input
                       type="password"
@@ -647,17 +775,17 @@ export default function ProfilePage() {
                     disabled={isSaving}
                     className="w-full bg-accent text-background font-medium py-3 rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isSaving ? "Modification..." : "Modifier le mot de passe"}
+                    {isSaving ? t.changing : t.changePasswordSubmit}
                   </button>
                 </form>
 
                 {/* Logout Section */}
                 <div className="pt-6 border-t border-border">
                   <h3 className="text-lg font-semibold text-primary mb-2">
-                    Déconnexion
+                    {t.logoutTitle}
                   </h3>
                   <p className="text-sm text-muted mb-4">
-                    Déconnectez-vous de votre compte sur cet appareil.
+                    {t.logoutText}
                   </p>
                   <button
                     type="button"
@@ -665,7 +793,7 @@ export default function ProfilePage() {
                     className="w-full bg-background-secondary text-primary font-medium py-3 rounded-lg hover:bg-border transition-colors border border-border flex items-center justify-center gap-2"
                   >
                     <LogOut className="w-5 h-5" />
-                    Se déconnecter
+                    {t.logout}
                   </button>
                 </div>
               </motion.div>
@@ -699,11 +827,10 @@ export default function ProfilePage() {
                         htmlFor="email_order_updates"
                         className="text-sm font-medium text-primary cursor-pointer"
                       >
-                        Notifications de commande
+                        {t.prefOrderUpdates}
                       </label>
                       <p className="text-xs text-muted mt-1">
-                        Recevoir des emails sur l&apos;état de vos commandes
-                        (confirmation, expédition, livraison)
+                        {t.prefOrderUpdatesText}
                       </p>
                     </div>
                   </div>
@@ -726,10 +853,10 @@ export default function ProfilePage() {
                         htmlFor="email_promotions"
                         className="text-sm font-medium text-primary cursor-pointer"
                       >
-                        Promotions et offres
+                        {t.prefPromotions}
                       </label>
                       <p className="text-xs text-muted mt-1">
-                        Recevoir nos offres spéciales et codes de réduction
+                        {t.prefPromotionsText}
                       </p>
                     </div>
                   </div>
@@ -752,11 +879,10 @@ export default function ProfilePage() {
                         htmlFor="email_marketing"
                         className="text-sm font-medium text-primary cursor-pointer"
                       >
-                        Newsletters et actualités
+                        {t.prefMarketing}
                       </label>
                       <p className="text-xs text-muted mt-1">
-                        Recevoir nos newsletters avec nouveautés, conseils et
-                        tendances
+                        {t.prefMarketingText}
                       </p>
                     </div>
                   </div>
@@ -779,12 +905,10 @@ export default function ProfilePage() {
                         htmlFor="track_browsing"
                         className="text-sm font-medium text-primary cursor-pointer"
                       >
-                        Historique de navigation
+                        {t.prefTracking}
                       </label>
                       <p className="text-xs text-muted mt-1">
-                        Suivre les produits que je consulte pour personnaliser mes
-                        recommandations. Vos données sont privées et supprimées
-                        automatiquement après 90 jours.
+                        {t.prefTrackingText}
                       </p>
                     </div>
                   </div>
@@ -795,7 +919,7 @@ export default function ProfilePage() {
                   disabled={isSaving}
                   className="w-full bg-accent text-background font-medium py-3 rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isSaving ? "Enregistrement..." : "Enregistrer"}
+                  {isSaving ? t.saving : t.save}
                 </button>
               </motion.form>
             )}

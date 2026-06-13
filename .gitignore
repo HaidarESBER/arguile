@@ -65,3 +65,5 @@ data/orders.json
 .env*
 !.env.example
 .eslint-report.json
+
+scripts/logs/

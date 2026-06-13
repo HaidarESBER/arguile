@@ -2,12 +2,38 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    unsubscribeError: "Erreur lors du désabonnement",
+    connectionError: "Erreur de connexion. Réessayez plus tard.",
+    successText: "Si cette adresse était inscrite, elle a été désabonnée.",
+    backHome: "Retour à l'accueil",
+    emailPlaceholder: "Votre adresse email",
+    processing: "Traitement...",
+    submit: "Se désabonner",
+  },
+  en: {
+    unsubscribeError: "Error while unsubscribing",
+    connectionError: "Connection error. Please try again later.",
+    successText:
+      "If this address was subscribed, it has been unsubscribed.",
+    backHome: "Back to home",
+    emailPlaceholder: "Your email address",
+    processing: "Processing...",
+    submit: "Unsubscribe",
+  },
+} as const;
 
 /**
  * Manual unsubscribe form client component.
  * Used on the /desabonnement page when no token is present.
  */
 export function UnsubscribeContent() {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
+
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "loading" | "success" | "error">(
     "idle"
@@ -32,14 +58,14 @@ export function UnsubscribeContent() {
 
       if (!res.ok) {
         setState("error");
-        setErrorMessage(data.error || "Erreur lors du désabonnement");
+        setErrorMessage(data.error || t.unsubscribeError);
         return;
       }
 
       setState("success");
     } catch {
       setState("error");
-      setErrorMessage("Erreur de connexion. Réessayez plus tard.");
+      setErrorMessage(t.connectionError);
     }
   };
 
@@ -62,13 +88,13 @@ export function UnsubscribeContent() {
           </svg>
         </div>
         <p className="text-primary/70 mb-6">
-          Si cette adresse était inscrite, elle a été désabonnée.
+          {t.successText}
         </p>
         <Link
           href="/"
           className="inline-block px-6 py-3 bg-primary text-background rounded-lg hover:bg-primary/90 transition-colors"
         >
-          Retour à l&apos;accueil
+          {t.backHome}
         </Link>
       </div>
     );
@@ -78,7 +104,7 @@ export function UnsubscribeContent() {
     <form onSubmit={handleSubmit} className="space-y-4">
       <input
         type="email"
-        placeholder="Votre adresse email"
+        placeholder={t.emailPlaceholder}
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
@@ -95,14 +121,14 @@ export function UnsubscribeContent() {
         disabled={state === "loading"}
         className="w-full px-6 py-3 bg-primary text-background rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
       >
-        {state === "loading" ? "Traitement..." : "Se désabonner"}
+        {state === "loading" ? t.processing : t.submit}
       </button>
 
       <Link
         href="/"
         className="block text-sm text-primary/60 hover:text-primary transition-colors"
       >
-        Retour à l&apos;accueil
+        {t.backHome}
       </Link>
     </form>
   );

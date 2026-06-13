@@ -2,6 +2,20 @@
 
 import { motion } from "framer-motion";
 import { useWishlist } from "@/contexts/WishlistContext";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    removeFromWishlist: "Retirer des favoris",
+    addToWishlist: "Ajouter aux favoris",
+    inWishlist: "Dans les favoris",
+  },
+  en: {
+    removeFromWishlist: "Remove from wishlist",
+    addToWishlist: "Add to wishlist",
+    inWishlist: "In wishlist",
+  },
+} as const;
 
 interface WishlistButtonProps {
   productId: string;
@@ -28,6 +42,8 @@ export function WishlistButton({
   showLabel = false,
 }: WishlistButtonProps) {
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const inWishlist = isInWishlist(productId);
 
   const handleToggle = (e: React.MouseEvent) => {
@@ -53,7 +69,7 @@ export function WishlistButton({
       className={`inline-flex items-center gap-2 ${className}`}
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
-      aria-label={inWishlist ? "Retirer des favoris" : "Ajouter aux favoris"}
+      aria-label={inWishlist ? t.removeFromWishlist : t.addToWishlist}
     >
       <motion.div
         animate={{
@@ -82,7 +98,7 @@ export function WishlistButton({
       </motion.div>
       {showLabel && (
         <span className="text-sm font-medium">
-          {inWishlist ? "Dans les favoris" : "Ajouter aux favoris"}
+          {inWishlist ? t.inWishlist : t.addToWishlist}
         </span>
       )}
     </motion.button>

@@ -1,12 +1,28 @@
+"use client";
+
 import { Container } from "@/components/ui";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    loadingLabel: "Chargement des produits",
+    loadingText: "Chargement des produits en cours…",
+  },
+  en: {
+    loadingLabel: "Loading products",
+    loadingText: "Products are loading…",
+  },
+} as const;
 
 /**
  * Skeleton loading state for the products listing page.
  * Matches the dark taupe theme and the product grid layout.
  */
 export default function ProduitsLoading() {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   return (
-    <main className="py-12 lg:py-16" aria-busy="true" aria-label="Chargement des produits">
+    <main className="py-12 lg:py-16" aria-busy="true" aria-label={t.loadingLabel}>
       <Container size="lg">
         {/* Header skeleton */}
         <div className="mb-10 space-y-3">
@@ -41,7 +57,7 @@ export default function ProduitsLoading() {
           ))}
         </div>
 
-        <p className="sr-only">Chargement des produits en cours…</p>
+        <p className="sr-only">{t.loadingText}</p>
       </Container>
     </main>
   );

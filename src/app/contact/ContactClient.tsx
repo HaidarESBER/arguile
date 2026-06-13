@@ -5,8 +5,99 @@ import Link from "next/link";
 import { Container } from "@/components/ui";
 import { EnvelopeIcon, PhoneIcon, MapPinIcon } from "@heroicons/react/24/outline";
 import { SUPPORT_EMAIL } from "@/lib/support";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    title: "Contactez-nous",
+    intro:
+      "Une question ? Une remarque ? N'hésitez pas à nous contacter, notre équipe vous répondra dans les plus brefs délais.",
+    formTitle: "Envoyez-nous un message",
+    nameLabel: "Nom complet",
+    namePlaceholder: "Jean Dupont",
+    emailLabel: "Email",
+    emailPlaceholder: "jean.dupont@email.com",
+    subjectLabel: "Sujet",
+    subjectPlaceholder: "Sélectionnez un sujet",
+    subjectOrder: "Question sur une commande",
+    subjectProduct: "Question sur un produit",
+    subjectShipping: "Problème de livraison",
+    subjectReturn: "Retour / Remboursement",
+    subjectOther: "Autre",
+    messageLabel: "Message",
+    messagePlaceholder: "Décrivez votre demande...",
+    sending: "Envoi en cours...",
+    send: "Envoyer le message",
+    successMessage: "Message envoyé avec succès ! Nous vous répondrons rapidement.",
+    genericError:
+      "Une erreur est survenue. Veuillez réessayer ou nous contacter directement par email.",
+    networkError:
+      "Impossible d'envoyer le message. Vérifiez votre connexion et réessayez.",
+    infoTitle: "Informations de contact",
+    emailHeading: "Email",
+    responseTime: "Réponse sous 24-48h",
+    phoneHeading: "Téléphone",
+    phoneHours: "Lun-Ven : 9h-18h",
+    addressHeading: "Adresse",
+    addressLine1: "[Adresse à compléter]",
+    addressLine2: "[Code postal] [Ville]",
+    addressLine3: "France",
+    supportTitle: "Service client",
+    supportText:
+      "Notre équipe est à votre disposition pour répondre à toutes vos questions concernant nos produits, vos commandes ou tout autre sujet.",
+    faqTitle: "Questions fréquentes",
+    faqText:
+      "Avant de nous contacter, consultez notre page de suivi de commande si vous avez besoin d'informations sur votre livraison.",
+    trackOrder: "Suivre ma commande →",
+  },
+  en: {
+    title: "Contact us",
+    intro:
+      "A question? A comment? Don't hesitate to reach out — our team will get back to you as soon as possible.",
+    formTitle: "Send us a message",
+    nameLabel: "Full name",
+    namePlaceholder: "John Smith",
+    emailLabel: "Email",
+    emailPlaceholder: "john.smith@email.com",
+    subjectLabel: "Subject",
+    subjectPlaceholder: "Select a subject",
+    subjectOrder: "Question about an order",
+    subjectProduct: "Question about a product",
+    subjectShipping: "Shipping issue",
+    subjectReturn: "Return / Refund",
+    subjectOther: "Other",
+    messageLabel: "Message",
+    messagePlaceholder: "Describe your request...",
+    sending: "Sending...",
+    send: "Send message",
+    successMessage: "Message sent successfully! We will get back to you shortly.",
+    genericError:
+      "Something went wrong. Please try again or contact us directly by email.",
+    networkError:
+      "Unable to send the message. Check your connection and try again.",
+    infoTitle: "Contact information",
+    emailHeading: "Email",
+    responseTime: "Reply within 24-48h",
+    phoneHeading: "Phone",
+    phoneHours: "Mon-Fri: 9am-6pm",
+    addressHeading: "Address",
+    addressLine1: "[Address to be completed]",
+    addressLine2: "[Postal code] [City]",
+    addressLine3: "France",
+    supportTitle: "Customer service",
+    supportText:
+      "Our team is here to answer any questions about our products, your orders or anything else.",
+    faqTitle: "Frequently asked questions",
+    faqText:
+      "Before contacting us, check our order tracking page if you need information about your delivery.",
+    trackOrder: "Track my order →",
+  },
+} as const;
 
 export function ContactClient() {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -31,10 +122,7 @@ export function ContactClient() {
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        setErrorMessage(
-          data.error ||
-            "Une erreur est survenue. Veuillez réessayer ou nous contacter directement par email."
-        );
+        setErrorMessage(data.error || t.genericError);
         setStatus("error");
         return;
       }
@@ -42,9 +130,7 @@ export function ContactClient() {
       setStatus("success");
       setFormData({ name: "", email: "", subject: "", message: "" });
     } catch {
-      setErrorMessage(
-        "Impossible d'envoyer le message. Vérifiez votre connexion et réessayez."
-      );
+      setErrorMessage(t.networkError);
       setStatus("error");
     }
   };
@@ -54,23 +140,23 @@ export function ContactClient() {
       <Container size="lg">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-4xl font-heading font-bold text-text mb-4">
-            Contactez-nous
+            {t.title}
           </h1>
           <p className="text-lg text-text-muted mb-12">
-            Une question ? Une remarque ? N&apos;hésitez pas à nous contacter, notre équipe vous répondra dans les plus brefs délais.
+            {t.intro}
           </p>
 
           <div className="grid md:grid-cols-2 gap-12">
             {/* Contact Form */}
             <div>
               <h2 className="text-2xl font-heading font-semibold text-text mb-6">
-                Envoyez-nous un message
+                {t.formTitle}
               </h2>
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-text mb-2">
-                    Nom complet
+                    {t.nameLabel}
                   </label>
                   <input
                     type="text"
@@ -80,13 +166,13 @@ export function ContactClient() {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-4 py-2 border border-primary/20 rounded-[--radius-button] bg-background text-text focus:outline-none focus:ring-2 focus:ring-accent"
-                    placeholder="Jean Dupont"
+                    placeholder={t.namePlaceholder}
                   />
                 </div>
 
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-text mb-2">
-                    Email
+                    {t.emailLabel}
                   </label>
                   <input
                     type="email"
@@ -96,13 +182,13 @@ export function ContactClient() {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="w-full px-4 py-2 border border-primary/20 rounded-[--radius-button] bg-background text-text focus:outline-none focus:ring-2 focus:ring-accent"
-                    placeholder="jean.dupont@email.com"
+                    placeholder={t.emailPlaceholder}
                   />
                 </div>
 
                 <div>
                   <label htmlFor="subject" className="block text-sm font-medium text-text mb-2">
-                    Sujet
+                    {t.subjectLabel}
                   </label>
                   <select
                     id="subject"
@@ -111,18 +197,18 @@ export function ContactClient() {
                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                     className="w-full px-4 py-2 border border-primary/20 rounded-[--radius-button] bg-background text-text focus:outline-none focus:ring-2 focus:ring-accent"
                   >
-                    <option value="">Sélectionnez un sujet</option>
-                    <option value="commande">Question sur une commande</option>
-                    <option value="produit">Question sur un produit</option>
-                    <option value="livraison">Problème de livraison</option>
-                    <option value="retour">Retour / Remboursement</option>
-                    <option value="autre">Autre</option>
+                    <option value="">{t.subjectPlaceholder}</option>
+                    <option value="commande">{t.subjectOrder}</option>
+                    <option value="produit">{t.subjectProduct}</option>
+                    <option value="livraison">{t.subjectShipping}</option>
+                    <option value="retour">{t.subjectReturn}</option>
+                    <option value="autre">{t.subjectOther}</option>
                   </select>
                 </div>
 
                 <div>
                   <label htmlFor="message" className="block text-sm font-medium text-text mb-2">
-                    Message
+                    {t.messageLabel}
                   </label>
                   <textarea
                     id="message"
@@ -133,7 +219,7 @@ export function ContactClient() {
                     value={formData.message}
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                     className="w-full px-4 py-2 border border-primary/20 rounded-[--radius-button] bg-background text-text focus:outline-none focus:ring-2 focus:ring-accent resize-none"
-                    placeholder="Décrivez votre demande..."
+                    placeholder={t.messagePlaceholder}
                   />
                 </div>
 
@@ -142,7 +228,7 @@ export function ContactClient() {
                   disabled={status === "sending"}
                   className="w-full px-6 py-3 bg-primary text-background rounded-[--radius-button] font-semibold hover:bg-primary-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {status === "sending" ? "Envoi en cours..." : "Envoyer le message"}
+                  {status === "sending" ? t.sending : t.send}
                 </button>
 
                 {status === "success" && (
@@ -150,7 +236,7 @@ export function ContactClient() {
                     role="status"
                     className="p-4 bg-green-500/10 border border-green-500/30 rounded-[--radius-button] text-green-300"
                   >
-                    Message envoyé avec succès ! Nous vous répondrons rapidement.
+                    {t.successMessage}
                   </div>
                 )}
 
@@ -159,8 +245,7 @@ export function ContactClient() {
                     role="alert"
                     className="p-4 bg-error/10 border border-error/30 rounded-[--radius-button] text-error"
                   >
-                    {errorMessage ||
-                      "Une erreur est survenue. Veuillez réessayer ou nous contacter directement par email."}
+                    {errorMessage || t.genericError}
                   </div>
                 )}
               </form>
@@ -169,7 +254,7 @@ export function ContactClient() {
             {/* Contact Information */}
             <div>
               <h2 className="text-2xl font-heading font-semibold text-text mb-6">
-                Informations de contact
+                {t.infoTitle}
               </h2>
 
               <div className="space-y-6">
@@ -178,12 +263,12 @@ export function ContactClient() {
                     <EnvelopeIcon className="w-6 h-6 text-accent" aria-hidden="true" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-text mb-1">Email</h3>
+                    <h3 className="font-semibold text-text mb-1">{t.emailHeading}</h3>
                     <a href={`mailto:${SUPPORT_EMAIL}`} className="text-text-muted hover:text-primary transition-colors">
                       {SUPPORT_EMAIL}
                     </a>
                     <p className="text-sm text-text-muted/70 mt-1">
-                      Réponse sous 24-48h
+                      {t.responseTime}
                     </p>
                   </div>
                 </div>
@@ -193,12 +278,12 @@ export function ContactClient() {
                     <PhoneIcon className="w-6 h-6 text-accent" aria-hidden="true" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-text mb-1">Téléphone</h3>
+                    <h3 className="font-semibold text-text mb-1">{t.phoneHeading}</h3>
                     <a href="tel:+33123456789" className="text-text-muted hover:text-primary transition-colors">
                       +33 1 23 45 67 89
                     </a>
                     <p className="text-sm text-text-muted/70 mt-1">
-                      Lun-Ven : 9h-18h
+                      {t.phoneHours}
                     </p>
                   </div>
                 </div>
@@ -208,11 +293,11 @@ export function ContactClient() {
                     <MapPinIcon className="w-6 h-6 text-accent" aria-hidden="true" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-text mb-1">Adresse</h3>
+                    <h3 className="font-semibold text-text mb-1">{t.addressHeading}</h3>
                     <p className="text-text-muted">
-                      [Adresse à compléter]<br />
-                      [Code postal] [Ville]<br />
-                      France
+                      {t.addressLine1}<br />
+                      {t.addressLine2}<br />
+                      {t.addressLine3}
                     </p>
                   </div>
                 </div>
@@ -220,25 +305,25 @@ export function ContactClient() {
 
               <div className="mt-10 p-6 bg-accent/5 rounded-[--radius-button] border border-accent/20">
                 <h3 className="font-semibold text-text mb-3">
-                  Service client
+                  {t.supportTitle}
                 </h3>
                 <p className="text-sm text-text-muted">
-                  Notre équipe est à votre disposition pour répondre à toutes vos questions concernant nos produits, vos commandes ou tout autre sujet.
+                  {t.supportText}
                 </p>
               </div>
 
               <div className="mt-6 p-6 bg-primary/5 rounded-[--radius-button] border border-primary/10">
                 <h3 className="font-semibold text-text mb-3">
-                  Questions fréquentes
+                  {t.faqTitle}
                 </h3>
                 <p className="text-sm text-text-muted mb-3">
-                  Avant de nous contacter, consultez notre page de suivi de commande si vous avez besoin d&apos;informations sur votre livraison.
+                  {t.faqText}
                 </p>
                 <Link
                   href="/suivi"
                   className="text-sm text-accent hover:underline font-medium"
                 >
-                  Suivre ma commande →
+                  {t.trackOrder}
                 </Link>
               </div>
             </div>

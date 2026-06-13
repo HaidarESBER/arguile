@@ -4,6 +4,32 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { isValidEmail } from "@/types/checkout";
 import { UserSession } from "@/types/user";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    emailRequired: "L'email est requis",
+    emailInvalid: "L'email n'est pas valide",
+    yourEmail: "Votre email",
+    useAccountEmail: (email: string) =>
+      `Utiliser l'email associé à mon compte (${email})`,
+    emailLabel: "Adresse email *",
+    emailHint: "Recevez la confirmation et le suivi de votre commande",
+    trustSignal:
+      "Vos donnees sont sécurisées. Aucun email marketing sans votre consentement.",
+  },
+  en: {
+    emailRequired: "Email is required",
+    emailInvalid: "Email is not valid",
+    yourEmail: "Your email",
+    useAccountEmail: (email: string) =>
+      `Use the email linked to my account (${email})`,
+    emailLabel: "Email address *",
+    emailHint: "Receive your order confirmation and tracking updates",
+    trustSignal:
+      "Your data is secure. No marketing emails without your consent.",
+  },
+} as const;
 
 interface GuestCheckoutProps {
   email: string;
@@ -28,6 +54,8 @@ export function GuestCheckout({
   user,
   isLoadingSession,
 }: GuestCheckoutProps) {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const [emailError, setEmailError] = useState<string>("");
   const [emailTouched, setEmailTouched] = useState(false);
   const [useAccountEmail, setUseAccountEmail] = useState(true);
@@ -56,9 +84,9 @@ export function GuestCheckout({
   const handleEmailBlur = () => {
     setEmailTouched(true);
     if (!email.trim()) {
-      setEmailError("L'email est requis");
+      setEmailError(t.emailRequired);
     } else if (!isValidEmail(email)) {
-      setEmailError("L'email n'est pas valide");
+      setEmailError(t.emailInvalid);
     } else {
       setEmailError("");
     }
@@ -72,7 +100,7 @@ export function GuestCheckout({
       className="space-y-4"
     >
       <div className="flex items-center justify-between">
-        <h2 className="font-heading text-xl text-primary">Votre email</h2>
+        <h2 className="font-heading text-xl text-text">{t.yourEmail}</h2>
         {/* Login prompt removed: guest checkout only (the button was a
             dead placeholder anyway) */}
       </div>
@@ -91,8 +119,8 @@ export function GuestCheckout({
               onChange={(e) => handleUseAccountEmailChange(e.target.checked)}
               className="mt-0.5 w-4 h-4 rounded border-background-secondary text-accent focus:ring-accent focus:ring-2"
             />
-            <span className="text-sm text-primary group-hover:text-accent transition-colors">
-              Utiliser l&apos;email associé à mon compte ({user.email})
+            <span className="text-sm text-text group-hover:text-accent transition-colors">
+              {t.useAccountEmail(user.email)}
             </span>
           </label>
         </motion.div>
@@ -102,9 +130,9 @@ export function GuestCheckout({
       <div>
         <label
           htmlFor="checkout-email"
-          className="block text-sm font-medium text-primary mb-1"
+          className="block text-sm font-medium text-text mb-1"
         >
-          Adresse email *
+          {t.emailLabel}
         </label>
         <input
           type="email"
@@ -117,7 +145,7 @@ export function GuestCheckout({
             emailError && emailTouched
               ? "border-red-500 focus:ring-red-500"
               : "border-background-secondary focus:ring-accent"
-          } bg-background text-primary focus:outline-none focus:ring-2 ${
+          } bg-background text-text focus:outline-none focus:ring-2 ${
             user && useAccountEmail ? "opacity-60 cursor-not-allowed" : ""
           }`}
           placeholder="jean.dupont@email.com"
@@ -147,7 +175,7 @@ export function GuestCheckout({
             <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
           </svg>
-          Recevez la confirmation et le suivi de votre commande
+          {t.emailHint}
         </p>
       </div>
 
@@ -171,7 +199,7 @@ export function GuestCheckout({
           <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
           <path d="M7 11V7a5 5 0 0 1 10 0v4" />
         </svg>
-        <span>Vos donnees sont sécurisées. Aucun email marketing sans votre consentement.</span>
+        <span>{t.trustSignal}</span>
       </div>
     </motion.div>
   );

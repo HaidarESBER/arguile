@@ -2,6 +2,28 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLocale } from "@/contexts/LocaleContext";
+
+const STRINGS = {
+  fr: {
+    invalidCode: "Code promo invalide",
+    validationError: "Erreur lors de la validation du code promo",
+    invalidForAmount: "Code promo invalide pour ce montant",
+    title: "Code promo",
+    remove: "Retirer",
+    placeholder: "Entrez votre code promo",
+    apply: "Appliquer",
+  },
+  en: {
+    invalidCode: "Invalid discount code",
+    validationError: "Error while validating the discount code",
+    invalidForAmount: "Discount code not valid for this amount",
+    title: "Discount code",
+    remove: "Remove",
+    placeholder: "Enter your discount code",
+    apply: "Apply",
+  },
+} as const;
 
 export interface AppliedDiscount {
   code: string;
@@ -29,6 +51,8 @@ export function DiscountCodeInput({
   subtotalCents,
   onDiscountApplied,
 }: DiscountCodeInputProps) {
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,19 +113,19 @@ export function DiscountCodeInput({
           onDiscountApplied(discount);
           setError(null);
         } else {
-          setError(data.error || "Code promo invalide");
+          setError(data.error || t.invalidCode);
           setAppliedDiscount(null);
           onDiscountApplied(null);
         }
       } catch {
-        setError("Erreur lors de la validation du code promo");
+        setError(t.validationError);
         setAppliedDiscount(null);
         onDiscountApplied(null);
       } finally {
         setIsLoading(false);
       }
     },
-    [subtotalCents, onDiscountApplied]
+    [subtotalCents, onDiscountApplied, t]
   );
 
   const revalidateDiscount = useCallback(
@@ -130,13 +154,13 @@ export function DiscountCodeInput({
           // Discount no longer valid (e.g., subtotal dropped below minimum)
           setAppliedDiscount(null);
           onDiscountApplied(null);
-          setError(data.error || "Code promo invalide pour ce montant");
+          setError(data.error || t.invalidForAmount);
         }
       } catch {
         // Keep existing discount on network error during re-validation
       }
     },
-    [subtotalCents, onDiscountApplied]
+    [subtotalCents, onDiscountApplied, t]
   );
 
   const removeDiscount = () => {
@@ -157,7 +181,7 @@ export function DiscountCodeInput({
       transition={{ duration: 0.4, delay: 0.1 }}
     >
       <div className="bg-background-card rounded-[--radius-card] p-6">
-        <h3 className="font-heading text-lg text-primary mb-4 flex items-center gap-2">
+        <h3 className="font-heading text-lg text-text mb-4 flex items-center gap-2">
           {/* Tag icon */}
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -173,7 +197,7 @@ export function DiscountCodeInput({
             <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
             <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" />
           </svg>
-          Code promo
+          {t.title}
         </h3>
 
         <AnimatePresence mode="wait">
@@ -213,7 +237,7 @@ export function DiscountCodeInput({
                 onClick={removeDiscount}
                 className="text-sm text-muted hover:text-primary transition-colors underline"
               >
-                Retirer
+                {t.remove}
               </button>
             </motion.div>
           ) : (
@@ -244,8 +268,8 @@ export function DiscountCodeInput({
                       if (!isLoading && code.trim()) handleApply();
                     }
                   }}
-                  placeholder="Entrez votre code promo"
-                  className="flex-1 px-4 py-3 rounded-[--radius-button] border border-background-secondary bg-background text-primary placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-accent"
+                  placeholder={t.placeholder}
+                  className="flex-1 px-4 py-3 rounded-[--radius-button] border border-background-secondary bg-background text-text placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-accent"
                   disabled={isLoading}
                 />
                 <button
@@ -294,7 +318,7 @@ export function DiscountCodeInput({
                       </motion.span>
                     </motion.span>
                   ) : (
-                    "Appliquer"
+                    t.apply
                   )}
                 </button>
               </div>

@@ -4,6 +4,22 @@ import { createClient } from "@/lib/supabase/server";
 import { SavedAddress } from "@/types/user";
 import { assertSameOrigin } from "@/lib/security";
 
+const STRINGS = {
+  fr: {
+    requiredFields: "Tous les champs obligatoires doivent être remplis",
+    postalCode: "Le code postal doit contenir 5 chiffres",
+  },
+  en: {
+    requiredFields: "All required fields must be filled in",
+    postalCode: "The postal code must contain 5 digits",
+  },
+} as const;
+
+function getRequestLocale(request: NextRequest): "fr" | "en" {
+  const v = request.cookies.get("locale")?.value;
+  return v === "en" ? "en" : "fr";
+}
+
 /**
  * GET /api/profile/addresses
  * Fetch user's saved addresses
@@ -49,6 +65,8 @@ export async function GET() {
  * Add new address to saved addresses
  */
 export async function POST(request: NextRequest) {
+  const t = STRINGS[getRequestLocale(request)];
+
   try {
     const csrfError = assertSameOrigin(request);
     if (csrfError) return csrfError;
@@ -69,7 +87,7 @@ export async function POST(request: NextRequest) {
       !body.phone
     ) {
       return NextResponse.json(
-        { error: "Tous les champs obligatoires doivent être remplis" },
+        { error: t.requiredFields },
         { status: 400 }
       );
     }
@@ -77,7 +95,7 @@ export async function POST(request: NextRequest) {
     // Validate French postal code format if country is FR
     if (body.country === "FR" && !/^\d{5}$/.test(body.postalCode)) {
       return NextResponse.json(
-        { error: "Le code postal doit contenir 5 chiffres" },
+        { error: t.postalCode },
         { status: 400 }
       );
     }
@@ -163,6 +181,8 @@ export async function POST(request: NextRequest) {
  * Update existing address
  */
 export async function PATCH(request: NextRequest) {
+  const t = STRINGS[getRequestLocale(request)];
+
   try {
     const csrfError = assertSameOrigin(request);
     if (csrfError) return csrfError;
@@ -190,7 +210,7 @@ export async function PATCH(request: NextRequest) {
       !body.phone
     ) {
       return NextResponse.json(
-        { error: "Tous les champs obligatoires doivent être remplis" },
+        { error: t.requiredFields },
         { status: 400 }
       );
     }
@@ -198,7 +218,7 @@ export async function PATCH(request: NextRequest) {
     // Validate French postal code format if country is FR
     if (body.country === "FR" && !/^\d{5}$/.test(body.postalCode)) {
       return NextResponse.json(
-        { error: "Le code postal doit contenir 5 chiffres" },
+        { error: t.postalCode },
         { status: 400 }
       );
     }

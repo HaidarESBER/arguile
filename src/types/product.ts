@@ -35,7 +35,8 @@ export interface Product {
 }
 
 /**
- * Category display names in French
+ * Category display names in French (kept as-is for the French-only admin).
+ * Customer-facing components should use getCategoryLabel(category, locale).
  */
 export const categoryLabels: Record<ProductCategory, string> = {
   chicha: "Chichas",
@@ -44,6 +45,24 @@ export const categoryLabels: Record<ProductCategory, string> = {
   charbon: "Charbon",
   accessoire: "Accessoires",
 };
+
+const categoryLabelsEn: Record<ProductCategory, string> = {
+  chicha: "Hookahs",
+  bol: "Bowls",
+  tuyau: "Hoses",
+  charbon: "Charcoal",
+  accessoire: "Accessories",
+};
+
+/**
+ * Localized category display name.
+ */
+export function getCategoryLabel(
+  category: ProductCategory,
+  locale: "fr" | "en"
+): string {
+  return locale === "en" ? categoryLabelsEn[category] : categoryLabels[category];
+}
 
 /**
  * Format price in cents to EUR string

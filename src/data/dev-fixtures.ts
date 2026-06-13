@@ -22,7 +22,7 @@ export const DEV_FIXTURE_PRODUCTS: Product[] = [
       "Notre pièce signature. Vase en verre soufflé main, colonne en inox brossé, plateau aimanté. Conçue pour des sessions longues : tirage doux, fumée dense, stabilité parfaite. Livrée avec bol en céramique artisanale et tuyau silicone.",
     price: 12999,
     compareAtPrice: 14999,
-    images: ["/chicha.jpg"],
+    images: ["/chicha.jpg", "/bowl.jpg", "/hose.webp", "/coal.webp"],
     category: "chicha",
     inStock: true,
     stockLevel: 12,
